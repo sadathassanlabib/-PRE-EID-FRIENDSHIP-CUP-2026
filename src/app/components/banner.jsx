@@ -35,22 +35,7 @@ const Banner = () => {
           ⚽ Tournament System Active
         </div>
 
-        {/* CTA BUTTONS */}
-        <div className="mt-10 flex flex-col md:flex-row gap-4 justify-center">
-
-          <Link href="/teams">
-            <button className="px-6 py-3 rounded-xl bg-orange-500 text-black font-bold hover:bg-orange-400 transition">
-              View Teams
-            </button>
-          </Link>
-
-          <Link href="/fixtures">
-            <button className="px-6 py-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 transition">
-              Match Fixtures
-            </button>
-          </Link>
-
-        </div>
+      
 
         {/* STATS DASHBOARD */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
