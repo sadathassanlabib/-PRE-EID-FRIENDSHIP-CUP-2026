@@ -8,6 +8,10 @@ const Player = () => {
   const [activeCategory, setActiveCategory] = useState('ALL')
   const [searchTerm, setSearchTerm] = useState('')
 
+  // ✅ FIXED: missing states (autosuggest)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
   const categories = ['ALL', 'A', 'B', 'C', 'D']
 
   const allPlayers = [
@@ -22,11 +26,16 @@ const Player = () => {
       ? allPlayers
       : players.categories[activeCategory] || []
 
-  const filteredPlayers = basePlayers.filter((p) =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // 🔍 unified search (name + position)
+  const query = searchTerm.toLowerCase().trim()
+
+  const filteredPlayers = basePlayers.filter(
+    (p) =>
+      p.name.toLowerCase().includes(query) ||
+      p.position.toLowerCase().includes(query)
   )
 
-  // optimized category finder
+  // 🧠 category finder
   const getPlayerCategory = (name) => {
     for (const cat of Object.keys(players.categories)) {
       if (players.categories[cat].some((p) => p.name === name)) {
@@ -36,14 +45,8 @@ const Player = () => {
     return 'Unlisted'
   }
 
-  // get player position safely
-  const getPlayerPosition = (player) => {
-    return player.position || 'Unknown'
-  }
-
   return (
     <section className="min-h-screen bg-black text-white py-14 px-5">
-
       <div className="max-w-7xl mx-auto">
 
         {/* HERO */}
@@ -97,18 +100,74 @@ const Player = () => {
         {/* SEARCH + FILTER */}
         <div className="flex flex-col lg:flex-row justify-between gap-4 mb-8">
 
+          {/* SEARCH */}
           <div className="relative w-full lg:max-w-md">
-            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+            />
 
             <input
-              placeholder="Search player..."
+              placeholder="Search player or position..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                setSearchTerm(value)
+
+                if (value.trim() === '') {
+                  setSuggestions([])
+                  setShowSuggestions(false)
+                  return
+                }
+
+                const q = value.toLowerCase()
+
+                const matches = allPlayers
+                  .filter(
+                    (p) =>
+                      p.name.toLowerCase().includes(q) ||
+                      p.position.toLowerCase().includes(q)
+                  )
+                  .slice(0, 5)
+
+                setSuggestions(matches)
+                setShowSuggestions(true)
+              }}
+              onBlur={() => {
+                setTimeout(() => setShowSuggestions(false), 150)
+              }}
               className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-orange-500 outline-none"
             />
+
+            {/* AUTOSUGGEST */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-black border border-white/10 rounded-xl overflow-hidden shadow-lg">
+
+                {suggestions.map((player, i) => (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      setSearchTerm(player.name)
+                      setShowSuggestions(false)
+                    }}
+                    className="px-4 py-3 hover:bg-white/10 cursor-pointer flex justify-between items-center"
+                  >
+                    <span>{player.name}</span>
+                    <span className="text-xs text-gray-400">
+                      {player.position}
+                    </span>
+                  </div>
+                ))}
+
+              </div>
+            )}
+
           </div>
 
+          {/* FILTER */}
           <div className="flex gap-2 flex-wrap">
+
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -122,6 +181,7 @@ const Player = () => {
                 {cat}
               </button>
             ))}
+
           </div>
 
         </div>
@@ -151,12 +211,11 @@ const Player = () => {
                 {player.name}
               </h3>
 
-              {/* POSITION (NEW) */}
+              {/* POSITION */}
               <p className="text-sm text-gray-400 mt-1">
-                Position: <span className="text-white">{getPlayerPosition(player)}</span>
+                Position: <span className="text-white">{player.position}</span>
               </p>
 
-              {/* LABEL */}
               <p className="text-gray-500 text-xs mt-2">
                 Tournament Player
               </p>
