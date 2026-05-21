@@ -3,86 +3,93 @@ import Link from 'next/link'
 
 const Banner = () => {
   return (
-    <div className="relative w-full min-h-[calc(100vh-120px)] flex items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black text-white">
+    <section className="relative w-full min-h-screen flex items-center bg-black text-white">
 
-      {/* GLOW BACKGROUND */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-96 h-96 bg-orange-500/20 blur-3xl rounded-full"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500/20 blur-3xl rounded-full"></div>
-      </div>
+      {/* subtle background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-gray-950" />
 
-      {/* MAIN CONTENT */}
-      <div className="relative text-center px-6 py-10">
+      <div className="max-w-6xl mx-auto px-6 py-20 w-full relative">
 
-        {/* ICON */}
-        <div className="text-7xl mb-6 animate-bounce">
-          🏆⚽
-        </div>
-
-        {/* TITLE */}
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-wide">
-          Pre-Eid <span className="text-orange-400">Friendship Cup</span> 2026
-        </h1>
-
-        {/* SUBTITLE */}
-        <p className="text-gray-300 mt-5 max-w-2xl mx-auto text-sm md:text-base">
-          A battlefield of passion, friendship, and football glory.  
-          Only one team will rise as champion.
+        {/* header line */}
+        <p className="text-sm tracking-[6px] text-gray-400 uppercase">
+          Pre-Eid Football Tournament 2026
         </p>
 
-        {/* STATUS BADGE */}
-        <div className="mt-8 inline-block px-6 py-2 rounded-full bg-white/10 border border-white/20 text-sm backdrop-blur-md">
-          ⚽ Tournament System Active
+        {/* title */}
+        <h1 className="mt-4 text-5xl md:text-7xl font-bold leading-tight">
+          Friendship Cup
+          <span className="block text-gray-400 font-medium text-2xl md:text-3xl mt-2">
+            Season 2026
+          </span>
+        </h1>
+
+        {/* description */}
+        <p className="mt-6 max-w-xl text-gray-400 text-base leading-relaxed">
+          A local football tournament built on competition, discipline, and friendship.
+          Organized for players who love the game and respect the spirit of football.
+        </p>
+
+        {/* info grid */}
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+
+          <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+            <p className="text-gray-400">Date</p>
+            <p className="font-semibold mt-1">23–24 May 2026</p>
+          </div>
+
+          <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+            <p className="text-gray-400">Time</p>
+            <p className="font-semibold mt-1">After Fajr Prayer</p>
+          </div>
+
+          <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+            <p className="text-gray-400">Venue</p>
+            <p className="font-semibold mt-1">
+              Habildar Mor, 60 Feet
+            </p>
+          </div>
+
         </div>
 
-      
+        {/* buttons */}
+        <div className="mt-10 flex flex-col sm:flex-row gap-4">
 
-        {/* STATS DASHBOARD */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-
-          {/* TEAMS */}
-          <Link href="/teams">
-            <div className="cursor-pointer bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-5 text-center group">
-
-              <p className="text-3xl font-bold text-orange-400 group-hover:scale-110 transition">
-                ⚽ 6
-              </p>
-
-              <p className="text-gray-300 mt-1 font-medium">Teams</p>
-              <p className="text-xs text-gray-500 mt-2">Click to explore squads</p>
-
-            </div>
-          </Link>
-
-          {/* PLAYERS */}
           <Link href="/players">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-
-              <p className="text-3xl font-bold text-blue-400">👥 30+</p>
-              <p className="text-gray-300 mt-1 font-medium">Players</p>
-              <p className="text-xs text-gray-500 mt-2">Registered participants</p>
-
-            </div>
+            <button className="px-6 py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition">
+              View Players
+            </button>
           </Link>
 
-          {/* FIXTURES */}
           <Link href="/fixtures">
-            <div className="cursor-pointer bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-5 text-center group">
-
-              <p className="text-3xl font-bold text-green-400 group-hover:scale-110 transition">
-                📅 View
-              </p>
-
-              <p className="text-gray-300 mt-1 font-medium">Fixtures</p>
-              <p className="text-xs text-gray-500 mt-2">Match schedule</p>
-
-            </div>
+            <button className="px-6 py-3 border border-white/20 rounded-lg hover:border-white/40 transition">
+              Match Fixtures
+            </button>
           </Link>
+
+        </div>
+
+        {/* stats */}
+        <div className="mt-16 flex gap-10 text-center">
+
+          <div>
+            <p className="text-3xl font-bold">6</p>
+            <p className="text-gray-500 text-sm mt-1">Teams</p>
+          </div>
+
+          <div>
+            <p className="text-3xl font-bold">30+</p>
+            <p className="text-gray-500 text-sm mt-1">Players</p>
+          </div>
+
+          <div>
+            <p className="text-3xl font-bold">2</p>
+            <p className="text-gray-500 text-sm mt-1">Days</p>
+          </div>
 
         </div>
 
       </div>
-    </div>
+    </section>
   )
 }
 

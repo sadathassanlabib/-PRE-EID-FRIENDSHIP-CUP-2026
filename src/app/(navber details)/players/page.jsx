@@ -1,15 +1,16 @@
 'use client'
 
+import { Crown, Search, ShieldCheck, Trophy } from 'lucide-react'
 import React, { useState } from 'react'
 import { players } from '../data/players'
 
 const Player = () => {
-  const [activeCategory, setActiveCategory] = useState("ALL")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [activeCategory, setActiveCategory] = useState('ALL')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const categories = ["ALL", "A", "B", "C", "D"]
+  const categories = ['ALL', 'A', 'B', 'C', 'D']
 
-  const getAllPlayers = () => [
+  const allPlayers = [
     ...players.categories.A,
     ...players.categories.B,
     ...players.categories.C,
@@ -17,108 +18,156 @@ const Player = () => {
   ]
 
   const basePlayers =
-    activeCategory === "ALL"
-      ? getAllPlayers()
+    activeCategory === 'ALL'
+      ? allPlayers
       : players.categories[activeCategory]
 
-  // 🔍 SEARCH FILTER (ONLY NAME)
   const filteredPlayers = basePlayers.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const getPlayerCategory = (name) => {
+    return Object.keys(players.categories).find((cat) =>
+      players.categories[cat].some((p) => p.name === name)
+    ) || 'Unlisted'
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white px-6 py-10">
+    <section className="min-h-screen bg-black text-white py-14 px-5">
 
-      {/* HEADER */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold">
-          ⚽ Players Dashboard
-        </h1>
+      <div className="max-w-7xl mx-auto">
 
-        <p className="text-gray-400 mt-2">
-          Pre-Eid Friendship Cup 2026
-        </p>
-      </div>
+        {/* HERO */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-orange-300 text-xs tracking-[4px]">
+            <Trophy size={14} />
+            Pre-Eid Friendship Cup 2026
+          </div>
 
-      {/* 👑 CAPTAINS SECTION */}
-<div className="mb-10">
-  <h2 className="text-center text-2xl font-bold text-yellow-400 mb-5">
-    👑 Team Captains
-  </h2>
+          <h1 className="mt-6 text-5xl font-black">
+            Players Dashboard
+          </h1>
 
-  <div className="flex flex-wrap justify-center gap-3">
-    {players.captains.map((captain, i) => (
-      <div
-        key={i}
-        className="px-5 py-3 rounded-full bg-yellow-500/10 border border-yellow-400/30 hover:scale-105 transition"
-      >
-        ⚽ {captain.name}
-      </div>
-    ))}
-  </div>
-</div>
+          <p className="text-gray-400 mt-3 text-sm">
+            Squad management, stats tracking & tournament overview
+          </p>
+        </div>
 
-      {/* SEARCH BAR */}
-      <div className="flex justify-center mb-6">
-        <input
-          type="text"
-          placeholder="Search player..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full max-w-md px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-        />
-      </div>
+        {/* CAPTAINS */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-5">
+            <Crown className="text-yellow-400" />
+            <h2 className="text-xl font-bold">Team Captains</h2>
+          </div>
 
-      {/* FILTER BUTTONS */}
-      <div className="flex justify-center flex-wrap gap-2 mb-8">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-              activeCategory === cat
-                ? "bg-orange-500 text-black"
-                : "bg-white/10 hover:bg-white/20"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
-      {/* PLAYERS GRID */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {players.captains.map((c, i) => (
+              <div
+                key={i}
+                className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-yellow-400/40 transition"
+              >
+                <div className="flex items-center gap-3">
 
-        {filteredPlayers.length > 0 ? (
-          filteredPlayers.map((p, i) => (
+                  <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                    👑
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold">{c.name}</h3>
+                    <p className="text-xs text-gray-400">Captain</p>
+                  </div>
+
+                </div>
+              </div>
+            ))}
+
+          </div>
+        </div>
+
+        {/* SEARCH + FILTER */}
+        <div className="flex flex-col lg:flex-row justify-between gap-4 mb-8">
+
+          <div className="relative w-full lg:max-w-md">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+
+            <input
+              placeholder="Search player..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-orange-500 outline-none"
+            />
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-sm border transition ${
+                  activeCategory === cat
+                    ? 'bg-orange-500 text-black'
+                    : 'bg-white/5 border-white/10 hover:border-orange-400/40'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+        </div>
+
+        {/* PLAYERS GRID */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+          {filteredPlayers.map((player, i) => (
             <div
               key={i}
-              className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition hover:scale-[1.02]"
+              className="group p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-orange-400/40 transition"
             >
-              <h2 className="text-xl font-bold text-orange-400">
-                ⚽ {p.name}
-              </h2>
 
-              <div className="mt-4">
-                <span className="text-xs px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30">
-                  Category {activeCategory === "ALL"
-                    ? Object.keys(players.categories).find(cat =>
-                        players.categories[cat].some(pl => pl.name === p.name)
-                      )
-                    : activeCategory}
+              {/* TOP */}
+              <div className="flex justify-between items-start mb-4">
+
+                <ShieldCheck className="text-orange-400" />
+
+                <span className="text-xs px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-400/20">
+                  {getPlayerCategory(player.name)}
                 </span>
+
               </div>
+
+              {/* NAME */}
+              <h3 className="text-xl font-bold group-hover:text-orange-300 transition">
+                {player.name}
+              </h3>
+
+              <p className="text-gray-400 text-sm mt-1">
+                Tournament Player
+              </p>
+
+              {/* STATS */}
+              <div className="mt-5 grid grid-cols-2 gap-3 text-center">
+
+                <div className="p-2 rounded-lg bg-black/30 border border-white/10">
+                  <p className="text-xs text-gray-400">Goals</p>
+                  <p className="text-green-400 font-bold">0</p>
+                </div>
+
+                <div className="p-2 rounded-lg bg-black/30 border border-white/10">
+                  <p className="text-xs text-gray-400">Assists</p>
+                  <p className="text-blue-400 font-bold">0</p>
+                </div>
+
+              </div>
+
             </div>
-          ))
-        ) : (
-          <p className="text-center text-gray-400 col-span-full">
-            No players found 😢
-          </p>
-        )}
+          ))}
+
+        </div>
 
       </div>
-
-    </div>
+    </section>
   )
 }
 
