@@ -15,7 +15,7 @@ const Navbar = () => {
           {/* LOGO */}
           <Link href="/" className="flex items-center gap-2 group">
             <span className="text-3xl group-hover:scale-110 transition">
-              🏆
+              🏆⚽
             </span>
 
             <span className="font-bold text-sm md:text-lg tracking-wide">
@@ -27,23 +27,23 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-8 text-sm">
 
             <Link className="hover:text-orange-400 transition" href="/players">
-              Players
+              👕 Players
             </Link>
 
             <Link className="hover:text-orange-400 transition" href="/teams">
-              Teams
+              ⚽ Teams
             </Link>
 
             <Link className="hover:text-orange-400 transition" href="/fixtures">
-              Fixtures
+              📅 Fixtures
             </Link>
 
             <Link className="hover:text-orange-400 transition" href="/result">
-              Results
+              📊 Results
             </Link>
 
             <Link className="hover:text-orange-400 transition" href="/about">
-              About
+              ℹ️ About
             </Link>
 
           </div>
@@ -51,7 +51,7 @@ const Navbar = () => {
           {/* MOBILE BUTTON */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-white"
+            className="md:hidden text-white text-xl"
           >
             {isOpen ? "✖" : "☰"}
           </button>
@@ -62,11 +62,25 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden pb-4 flex flex-col gap-3 border-t border-white/10 pt-4 text-sm">
 
-            <Link onClick={() => setIsOpen(false)} href="/players">Players</Link>
-            <Link onClick={() => setIsOpen(false)} href="/teams">Teams</Link>
-            <Link onClick={() => setIsOpen(false)} href="/fixtures">Fixtures</Link>
-            <Link onClick={() => setIsOpen(false)} href="/result">Results</Link>
-            <Link onClick={() => setIsOpen(false)} href="/about">About</Link>
+            <Link onClick={() => setIsOpen(false)} href="/players">
+              👕 Players
+            </Link>
+
+            <Link onClick={() => setIsOpen(false)} href="/teams">
+              ⚽ Teams
+            </Link>
+
+            <Link onClick={() => setIsOpen(false)} href="/fixtures">
+              📅 Fixtures
+            </Link>
+
+            <Link onClick={() => setIsOpen(false)} href="/result">
+              📊 Results
+            </Link>
+
+            <Link onClick={() => setIsOpen(false)} href="/about">
+              ℹ️ About
+            </Link>
 
           </div>
         )}
