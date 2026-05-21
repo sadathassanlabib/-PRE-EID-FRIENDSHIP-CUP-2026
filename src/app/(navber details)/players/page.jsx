@@ -1,29 +1,29 @@
 'use client'
 
 import React, { useState } from 'react'
-import { player } from '../players/players'
+import { players } from '../data/players'
 
 const Player = () => {
   const [activeCategory, setActiveCategory] = useState("ALL")
   const [searchTerm, setSearchTerm] = useState("")
 
-  const categories = ["ALL", "A", "B", "C"]
+  const categories = ["ALL", "A", "B", "C", "D"]
 
   const getAllPlayers = () => [
-    ...player.categories.A,
-    ...player.categories.B,
-    ...player.categories.C
+    ...players.categories.A,
+    ...players.categories.B,
+    ...players.categories.C,
+    ...players.categories.D
   ]
 
   const basePlayers =
     activeCategory === "ALL"
       ? getAllPlayers()
-      : player.categories[activeCategory]
+      : players.categories[activeCategory]
 
-  // 🔍 SEARCH FILTER (NAME + POSITION)
+  // 🔍 SEARCH FILTER (ONLY NAME)
   const filteredPlayers = basePlayers.filter((p) =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.position.toLowerCase().includes(searchTerm.toLowerCase())
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -34,35 +34,35 @@ const Player = () => {
         <h1 className="text-4xl font-bold">
           ⚽ Players Dashboard
         </h1>
+
         <p className="text-gray-400 mt-2">
           Pre-Eid Friendship Cup 2026
         </p>
       </div>
+
       {/* 👑 CAPTAINS SECTION */}
-<div className="mb-8">
-  <h2 className="text-center text-2xl font-bold text-yellow-400 mb-4">
+<div className="mb-10">
+  <h2 className="text-center text-2xl font-bold text-yellow-400 mb-5">
     👑 Team Captains
   </h2>
 
   <div className="flex flex-wrap justify-center gap-3">
-    {player.captains.map((c, i) => (
+    {players.captains.map((captain, i) => (
       <div
         key={i}
-        className="px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-400/30 hover:scale-105 transition"
+        className="px-5 py-3 rounded-full bg-yellow-500/10 border border-yellow-400/30 hover:scale-105 transition"
       >
-        ⚽ <span className="font-semibold">{c.name}</span>
-        <span className="text-gray-300 ml-2 text-sm">
-          ({c.position})
-        </span>
+        ⚽ {captain.name}
       </div>
     ))}
   </div>
 </div>
+
       {/* SEARCH BAR */}
       <div className="flex justify-center mb-6">
         <input
           type="text"
-          placeholder="Search player or position..."
+          placeholder="Search player..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full max-w-md px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -93,19 +93,19 @@ const Player = () => {
           filteredPlayers.map((p, i) => (
             <div
               key={i}
-              className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition"
+              className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition hover:scale-[1.02]"
             >
               <h2 className="text-xl font-bold text-orange-400">
                 ⚽ {p.name}
               </h2>
 
-              <p className="text-gray-300 mt-2">
-                Position: <span className="text-white">{p.position}</span>
-              </p>
-
               <div className="mt-4">
                 <span className="text-xs px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30">
-                  Player Profile
+                  Category {activeCategory === "ALL"
+                    ? Object.keys(players.categories).find(cat =>
+                        players.categories[cat].some(pl => pl.name === p.name)
+                      )
+                    : activeCategory}
                 </span>
               </div>
             </div>
