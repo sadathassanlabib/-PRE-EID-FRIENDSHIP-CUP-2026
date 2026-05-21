@@ -6,78 +6,71 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="bg-white/10 backdrop-blur-md border-b border-white/20 shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto px-4">
+    <nav className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur-xl border-b border-white/10 text-white">
+
+      <div className="max-w-7xl mx-auto px-4">
+
         <div className="flex justify-between items-center h-16">
-          {/* Logo - Left Side */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <span className="text-3xl transition-all duration-300 group-hover:scale-110">
+
+          {/* LOGO */}
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="text-3xl group-hover:scale-110 transition">
               🏆
             </span>
-            <span className="font-bold text-xl bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              PRE-EID FRIENDSHIP <span className="text-orange-400">CUP 2026</span>
+
+            <span className="font-bold text-sm md:text-lg tracking-wide">
+              PRE-EID <span className="text-orange-400">FRIENDSHIP CUP 2026</span>
             </span>
           </Link>
 
-          {/* Desktop Navigation Links - Right Side */}
-          <div className="hidden md:flex space-x-8">
-            <Link href="/players" className="relative text-gray-200 hover:text-white transition duration-300 group text-sm font-medium">
+          {/* DESKTOP MENU */}
+          <div className="hidden md:flex items-center gap-8 text-sm">
+
+            <Link className="hover:text-orange-400 transition" href="/players">
               Players
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-300 group-hover:w-full rounded-full"></span>
             </Link>
-            <Link href="/teams" className="relative text-gray-200 hover:text-white transition duration-300 group text-sm font-medium">
+
+            <Link className="hover:text-orange-400 transition" href="/teams">
               Teams
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-300 group-hover:w-full rounded-full"></span>
             </Link>
-            <Link href="/fixtures" className="relative text-gray-200 hover:text-white transition duration-300 group text-sm font-medium">
+
+            <Link className="hover:text-orange-400 transition" href="/fixtures">
               Fixtures
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-300 group-hover:w-full rounded-full"></span>
             </Link>
-            <Link href="/result" className="relative text-gray-200 hover:text-white transition duration-300 group text-sm font-medium">
-              Result
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-300 group-hover:w-full rounded-full"></span>
+
+            <Link className="hover:text-orange-400 transition" href="/result">
+              Results
             </Link>
-            <Link href="/about" className="relative text-gray-200 hover:text-white transition duration-300 group text-sm font-medium">
+
+            <Link className="hover:text-orange-400 transition" href="/about">
               About
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-300 group-hover:w-full rounded-full"></span>
             </Link>
+
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* MOBILE BUTTON */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-white focus:outline-none"
+            className="md:hidden text-white"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            {isOpen ? "✖" : "☰"}
           </button>
+
         </div>
 
-        {/* Mobile Menu */}
-        <div className={`md:hidden transition-all duration-300 overflow-hidden ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="py-4 border-t border-white/10 flex flex-col space-y-3">
-            <Link href="/players" onClick={() => setIsOpen(false)} className="text-gray-200 hover:text-white transition duration-300 px-2 py-1 hover:pl-4">
-              👕 Players
-            </Link>
-            <Link href="/teams" onClick={() => setIsOpen(false)} className="text-gray-200 hover:text-white transition duration-300 px-2 py-1 hover:pl-4">
-              ⚽ Teams
-            </Link>
-            <Link href="/fixtures" onClick={() => setIsOpen(false)} className="text-gray-200 hover:text-white transition duration-300 px-2 py-1 hover:pl-4">
-              📅 Fixtures
-            </Link>
-            <Link href="/result" onClick={() => setIsOpen(false)} className="text-gray-200 hover:text-white transition duration-300 px-2 py-1 hover:pl-4">
-              📊 Result
-            </Link>
-            <Link href="/about" onClick={() => setIsOpen(false)} className="text-gray-200 hover:text-white transition duration-300 px-2 py-1 hover:pl-4">
-              ℹ️ About
-            </Link>
+        {/* MOBILE MENU */}
+        {isOpen && (
+          <div className="md:hidden pb-4 flex flex-col gap-3 border-t border-white/10 pt-4 text-sm">
+
+            <Link onClick={() => setIsOpen(false)} href="/players">Players</Link>
+            <Link onClick={() => setIsOpen(false)} href="/teams">Teams</Link>
+            <Link onClick={() => setIsOpen(false)} href="/fixtures">Fixtures</Link>
+            <Link onClick={() => setIsOpen(false)} href="/result">Results</Link>
+            <Link onClick={() => setIsOpen(false)} href="/about">About</Link>
+
           </div>
-        </div>
+        )}
+
       </div>
     </nav>
   )
