@@ -20,16 +20,25 @@ const Player = () => {
   const basePlayers =
     activeCategory === 'ALL'
       ? allPlayers
-      : players.categories[activeCategory]
+      : players.categories[activeCategory] || []
 
   const filteredPlayers = basePlayers.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  // optimized category finder
   const getPlayerCategory = (name) => {
-    return Object.keys(players.categories).find((cat) =>
-      players.categories[cat].some((p) => p.name === name)
-    ) || 'Unlisted'
+    for (const cat of Object.keys(players.categories)) {
+      if (players.categories[cat].some((p) => p.name === name)) {
+        return cat
+      }
+    }
+    return 'Unlisted'
+  }
+
+  // get player position safely
+  const getPlayerPosition = (player) => {
+    return player.position || 'Unknown'
   }
 
   return (
@@ -132,7 +141,7 @@ const Player = () => {
                 <ShieldCheck className="text-orange-400" />
 
                 <span className="text-xs px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-400/20">
-                  {getPlayerCategory(player.name)}
+                  Category {getPlayerCategory(player.name)}
                 </span>
 
               </div>
@@ -142,7 +151,13 @@ const Player = () => {
                 {player.name}
               </h3>
 
-              <p className="text-gray-400 text-sm mt-1">
+              {/* POSITION (NEW) */}
+              <p className="text-sm text-gray-400 mt-1">
+                Position: <span className="text-white">{getPlayerPosition(player)}</span>
+              </p>
+
+              {/* LABEL */}
+              <p className="text-gray-500 text-xs mt-2">
                 Tournament Player
               </p>
 
