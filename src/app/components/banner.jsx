@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 const Banner = () => {
   return (
-    <div className="relative w-full h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black text-white">
+    <div className="relative w-full min-h-[calc(100vh-120px)] flex items-center justify-center overflow-hidden bg-gradient-to-br from-black via-gray-900 to-black text-white">
 
       {/* GLOW BACKGROUND */}
       <div className="absolute inset-0">
@@ -12,7 +12,7 @@ const Banner = () => {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="relative text-center px-6">
+      <div className="relative text-center px-6 py-10">
 
         {/* ICON */}
         <div className="text-7xl mb-6 animate-bounce">
@@ -63,34 +63,21 @@ const Banner = () => {
                 ⚽ 6
               </p>
 
-              <p className="text-gray-300 mt-1 font-medium">
-                Teams
-              </p>
-
-              <p className="text-xs text-gray-500 mt-2">
-                Click to explore squads
-              </p>
+              <p className="text-gray-300 mt-1 font-medium">Teams</p>
+              <p className="text-xs text-gray-500 mt-2">Click to explore squads</p>
 
             </div>
           </Link>
 
           {/* PLAYERS */}
           <Link href="/players">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
 
-            <p className="text-3xl font-bold text-blue-400">
-              👥 30+
-            </p>
+              <p className="text-3xl font-bold text-blue-400">👥 30+</p>
+              <p className="text-gray-300 mt-1 font-medium">Players</p>
+              <p className="text-xs text-gray-500 mt-2">Registered participants</p>
 
-            <p className="text-gray-300 mt-1 font-medium">
-              Players
-            </p>
-
-            <p className="text-xs text-gray-500 mt-2">
-              Registered participants
-            </p>
-
-          </div>
+            </div>
           </Link>
 
           {/* FIXTURES */}
@@ -101,13 +88,8 @@ const Banner = () => {
                 📅 View
               </p>
 
-              <p className="text-gray-300 mt-1 font-medium">
-                Fixtures
-              </p>
-
-              <p className="text-xs text-gray-500 mt-2">
-                Match schedule
-              </p>
+              <p className="text-gray-300 mt-1 font-medium">Fixtures</p>
+              <p className="text-xs text-gray-500 mt-2">Match schedule</p>
 
             </div>
           </Link>
