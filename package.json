@@ -9,8 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "daisyui": "^5.5.20",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "lucide-react": "^1.16.0",
+    "mongoose": "^9.6.2",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -20,5 +24,19 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4.3.0"
-  }
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sadathassanlabib/-PRE-EID-FRIENDSHIP-CUP-2026.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/sadathassanlabib/-PRE-EID-FRIENDSHIP-CUP-2026/issues"
+  },
+  "homepage": "https://github.com/sadathassanlabib/-PRE-EID-FRIENDSHIP-CUP-2026#readme"
 }
