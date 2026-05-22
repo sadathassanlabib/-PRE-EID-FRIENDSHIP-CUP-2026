@@ -25,8 +25,7 @@ const Banner = () => {
 
         {/* description */}
         <p className="mt-6 max-w-xl text-gray-400 text-base leading-relaxed">
-          A local football tournament built on competition, discipline, and friendship.
-          Organized for players who love the game and respect the spirit of football.
+          Organized to bring players together, fostering mutual respect and building stronger connections.
         </p>
 
         {/* info grid */}

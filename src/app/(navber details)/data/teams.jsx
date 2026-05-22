@@ -1,6 +1,6 @@
 export const teams = [
   {
-    teamName: "Team Monon",
+    teamName: "Team Muhammad Bin Qasim",
     captain: "Monon Ahmed",
     players: [
       { name: "Monon Ahmed", position: "Striker", category: "B", isCaptain: true, goals: 0, assists: 0 },
@@ -13,7 +13,7 @@ export const teams = [
   },
 
   {
-    teamName: "Team Abu Sayed",
+    teamName: "Team Badr 313",
     captain: "Abu Sayed",
     players: [
       { name: "Abu Sayed", position: "Striker", category: "C", isCaptain: true, goals: 0, assists: 0 },
@@ -26,7 +26,7 @@ export const teams = [
   },
 
   {
-    teamName: "Team Kawsar",
+    teamName: "Mohiesurer Bagh",
     captain: "Kawsar",
     players: [
       { name: "Kawsar", position: "Defender", category: "C", isCaptain: true, goals: 0, assists: 0 },
@@ -39,7 +39,7 @@ export const teams = [
   },
 
   {
-    teamName: "Team Salman",
+    teamName: "Team Khalid Bin Walid",
     captain: "Salman Farsi",
     players: [
       { name: "Salman Farsi", position: "Midfielder", category: "B", isCaptain: true, goals: 0, assists: 0 },
@@ -52,7 +52,7 @@ export const teams = [
   },
 
   {
-    teamName: "Team Tamim Rahman",
+    teamName: "Team Sultan Salahuddin",
     captain: "Tamim Rahman",
     players: [
       { name: "Tamim Rahman", position: "Midfielder", category: "B", isCaptain: true, goals: 0, assists: 0 },
@@ -65,7 +65,7 @@ export const teams = [
   },
 
   {
-    teamName: "Team Tamim Ahmed",
+    teamName: "Fatihler Sultani",
     captain: "Tamim Ahmed",
     players: [
       { name: "Tamim Ahmed", position: "Midfielder", category: "A", isCaptain: true, goals: 0, assists: 0 },
