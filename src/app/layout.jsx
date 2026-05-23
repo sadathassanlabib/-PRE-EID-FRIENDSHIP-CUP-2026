@@ -1,33 +1,22 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Navbar from "./components/navber";
-import Footer from "./components/footer";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Navbar from './components/navber'
+import './globals.css'
+ // Make sure this path is correct
 
 export const metadata = {
-  title: "Football Cup - Ultimate Tournament Hub",
-  description: "Follow the biggest football tournament with live scores, team standings, player stats, and match schedules.",
-};
+  title: 'Pre-Eid Friendship Cup 2026',
+  description: 'Tournament management system for Friendship Cup 2026',
+}
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col">
+      <body className="min-h-screen bg-black">
         <Navbar />
-        <main className="container mx-auto max-w-screen">
-          {children}
-        </main>
-        <Footer />
+        <main className="min-h-screen">{children}</main>
+        <footer className="text-center py-6 text-gray-500 text-sm border-t border-white/10">
+          <p>© 2026 Pre-Eid Friendship Cup. All rights reserved.</p>
+        </footer>
       </body>
     </html>
-  );
+  )
 }

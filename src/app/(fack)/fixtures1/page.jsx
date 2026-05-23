@@ -1,41 +1,40 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, MapPin, Trophy, Users, Award } from 'lucide-react'
+import { Calendar, Trophy, MapPin, Clock, Search, Crown, Goal } from 'lucide-react'
 
-const Fixtures = () => {
+const PublicFixtures = () => {
   const [fixtures, setFixtures] = useState([])
   const [teams, setTeams] = useState([])
+  const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedRound, setSelectedRound] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [filterRound, setFilterRound] = useState('all')
 
-  const rounds = ['all', 'group', 'quarter-final', 'semi-final', 'final']
-
-  // Fetch fixtures from database
   useEffect(() => {
-    fetchFixtures()
-    fetchTeams()
+    fetchAllData()
   }, [])
+
+  const fetchAllData = async () => {
+    setLoading(true)
+    try {
+      await Promise.all([fetchFixtures(), fetchTeams(), fetchPlayers()])
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchFixtures = async () => {
     try {
       const response = await fetch('/api/fixtures')
       const data = await response.json()
-      
-      if (data.success && Array.isArray(data.data)) {
-        // Sort by date and time
-        const sortedFixtures = data.data.sort((a, b) => {
-          if (a.date !== b.date) return new Date(a.date) - new Date(b.date)
-          return a.time?.localeCompare(b.time || '')
-        })
-        setFixtures(sortedFixtures)
-      } else {
-        setFixtures([])
+      if (data.success) {
+        setFixtures(data.data || [])
       }
     } catch (error) {
       console.error('Error fetching fixtures:', error)
-      setFixtures([])
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -43,262 +42,476 @@ const Fixtures = () => {
     try {
       const response = await fetch('/api/teams')
       const data = await response.json()
-      
-      if (data.success && Array.isArray(data.data)) {
-        setTeams(data.data)
-      } else {
-        setTeams([])
+      if (data.success) {
+        setTeams(data.data || [])
       }
     } catch (error) {
       console.error('Error fetching teams:', error)
-      setTeams([])
     }
   }
 
-  // Filter fixtures by round
-  const filteredFixtures = selectedRound === 'all' 
-    ? fixtures 
-    : fixtures.filter(f => f.round === selectedRound)
-
-  // Get team logo/color
-  const getTeamInfo = (teamName) => {
-    const team = teams.find(t => t.name === teamName)
-    return {
-      logo: team?.logo || '⚽',
-      color: team?.color || '#ff3b30'
+  const fetchPlayers = async () => {
+    try {
+      const response = await fetch('/api/players')
+      const data = await response.json()
+      if (data.success) {
+        setPlayers(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching players:', error)
     }
   }
 
-  // Get status badge color
-  const getStatusBadge = (status) => {
+  const getTeamName = (teamId, teamName) => {
+    if (teamId && teams.length > 0) {
+      const team = teams.find(t => t._id === teamId || t.teamId === teamId)
+      if (team) return team.name
+    }
+    return teamName || 'TBD'
+  }
+
+  const getTeamShort = (teamId, teamName) => {
+    const name = getTeamName(teamId, teamName)
+    if (name === 'TBD') return '?'
+    return name.slice(0, 2).toUpperCase()
+  }
+
+  const getPlayerName = (playerId) => {
+    const player = players.find(p => p._id === playerId)
+    return player ? player.name : ''
+  }
+
+  const getMatchStatus = (fixture) => {
+    if (fixture.status === 'live') {
+      return 'live'
+    }
+    if (fixture.status === 'upcoming') {
+      return 'upcoming'
+    }
+    
+    if (fixture.status === 'completed' || 
+        (fixture.score1 !== undefined && fixture.score1 !== null && 
+         fixture.score2 !== undefined && fixture.score2 !== null)) {
+      return 'completed'
+    }
+    
+    if (fixture.date) {
+      const matchDate = new Date(fixture.date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      if (matchDate >= today) {
+        return 'upcoming'
+      }
+    }
+    
+    if (fixture.date) {
+      const matchDate = new Date(fixture.date)
+      const today = new Date()
+      if (matchDate < today) {
+        return 'completed'
+      }
+    }
+    
+    return 'upcoming'
+  }
+
+  const getStatusBadge = (fixture) => {
+    const status = getMatchStatus(fixture)
+    
     switch(status) {
-      case 'completed':
-        return { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Completed' }
       case 'live':
-        return { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Live' }
+        return { label: 'LIVE', color: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500' }
+      case 'completed':
+        return { label: 'COMPLETED', color: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500' }
+      case 'upcoming':
+        return { label: 'UPCOMING', color: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500' }
       default:
-        return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Upcoming' }
+        return { label: 'SCHEDULED', color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500' }
     }
   }
 
-  // Get round badge color
-  const getRoundBadge = (round) => {
-    switch(round) {
-      case 'group': return 'bg-blue-500/20 text-blue-400'
-      case 'quarter-final': return 'bg-purple-500/20 text-purple-400'
-      case 'semi-final': return 'bg-orange-500/20 text-orange-400'
-      case 'final': return 'bg-yellow-500/20 text-yellow-400'
-      default: return 'bg-gray-500/20 text-gray-400'
-    }
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'TBD'
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
   }
 
-  // Group fixtures by date
-  const groupedFixtures = filteredFixtures.reduce((groups, fixture) => {
-    const date = fixture.date || 'TBD'
-    if (!groups[date]) {
-      groups[date] = []
-    }
-    groups[date].push(fixture)
-    return groups
-  }, {})
+  const rounds = ['all', ...new Set(fixtures.map(f => f.round).filter(Boolean))]
 
-  // Sort dates
-  const sortedDates = Object.keys(groupedFixtures).sort()
+  const filteredFixtures = fixtures.filter(fixture => {
+    const team1Name = getTeamName(fixture.team1Id, fixture.team1)
+    const team2Name = getTeamName(fixture.team2Id, fixture.team2)
+    const matchStatus = getMatchStatus(fixture)
+    
+    const matchesSearch = searchTerm === '' ||
+      team1Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      team2Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fixture.venue?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesStatus = filterStatus === 'all' || matchStatus === filterStatus
+    const matchesRound = filterRound === 'all' || fixture.round === filterRound
+    
+    return matchesSearch && matchesStatus && matchesRound
+  })
+
+  const sortedFixtures = [...filteredFixtures].sort((a, b) => {
+    const statusOrder = { 'live': 0, 'upcoming': 1, 'completed': 2 }
+    const statusA = getMatchStatus(a)
+    const statusB = getMatchStatus(b)
+    
+    if (statusA !== statusB) {
+      return statusOrder[statusA] - statusOrder[statusB]
+    }
+    
+    const dateA = new Date(a.date)
+    const dateB = new Date(b.date)
+    return dateA - dateB
+  })
+
+  const stats = {
+    total: fixtures.length,
+    live: fixtures.filter(f => getMatchStatus(f) === 'live').length,
+    upcoming: fixtures.filter(f => getMatchStatus(f) === 'upcoming').length,
+    completed: fixtures.filter(f => getMatchStatus(f) === 'completed').length
+  }
 
   if (loading) {
     return (
-      <section className="min-h-screen bg-black text-white py-24 px-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading fixtures...</p>
-        </div>
-      </section>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+        <div className="w-10 h-10 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-gray-500 text-sm">Loading fixtures...</p>
+      </div>
     )
   }
 
   return (
-    <section className="min-h-screen bg-black text-white py-24 px-6">
-      <div className="max-w-6xl mx-auto">
-
-        {/* HEADER */}
-        <div className="text-center mb-14">
-          <p className="text-xs tracking-[6px] text-gray-500 uppercase">
-            Official Tournament Fixtures
-          </p>
-          <h1 className="mt-4 text-4xl md:text-5xl font-bold">
-            Pre-Eid Friendship Cup 2026
-          </h1>
-          <p className="text-gray-400 mt-3 text-sm">
-            Group Stage + Knockout Stage Schedule
-          </p>
-          <div className="w-24 h-[2px] bg-orange-500 mx-auto mt-6" />
+    <div className="min-h-screen bg-black overflow-x-hidden">
+      {/* Hero Section */}
+      <div className="relative border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 text-orange-400 text-xs mb-3 sm:mb-4">
+              <Trophy size={12} />
+              <span className="hidden xs:inline">PRE-EID FRIENDSHIP CUP 2026</span>
+              <span className="xs:hidden">CUP 2026</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-bold mb-1 sm:mb-2">Fixtures</h1>
+            <p className="text-gray-500 text-xs sm:text-sm">Match schedule, results & goal scorers</p>
+          </div>
         </div>
+      </div>
 
-        {/* EVENT INFO CARD */}
-        <div className="border border-white/10 rounded-2xl bg-white/[0.03] p-6 mb-10">
-          <h2 className="text-2xl font-bold text-orange-400 mb-4 flex items-center gap-2">
-            <Calendar size={24} />
-            Tournament Information
-          </h2>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm text-gray-300">
-            <div>
-              <p className="text-gray-500 flex items-center gap-1"><Calendar size={14} /> Dates</p>
-              <p className="text-white font-medium">23–24 May 2026</p>
-            </div>
-            <div>
-              <p className="text-gray-500 flex items-center gap-1"><Clock size={14} /> Kickoff Time</p>
-              <p className="text-white font-medium">From 6:00 AM (Daily)</p>
-            </div>
-            <div>
-              <p className="text-gray-500 flex items-center gap-1"><MapPin size={14} /> Venue</p>
-              <p className="text-white font-medium">Tin Tala Math, Habildar Mor, 60 Feet</p>
-            </div>
-            <div>
-              <p className="text-gray-500">⚽ Match Format</p>
-              <p className="text-white font-medium">15 min + 5 min break + 15 min (45 min total)</p>
-            </div>
-            <div>
-              <p className="text-gray-500">🏆 Stage Format</p>
-              <p className="text-white font-medium">Group Stage → Semi Final → 3rd Place → Final</p>
-            </div>
-            <div>
-              <p className="text-gray-500">📊 Structure</p>
-              <p className="text-white font-medium">Round Robin + Knockout System</p>
-            </div>
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
+        
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
+          <div className="p-2 sm:p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-white">{stats.total}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Total</p>
+          </div>
+          <div className="p-2 sm:p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-red-400">{stats.live}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Live</p>
+          </div>
+          <div className="p-2 sm:p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-blue-400">{stats.upcoming}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Upcoming</p>
+          </div>
+          <div className="p-2 sm:p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-green-400">{stats.completed}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Completed</p>
           </div>
         </div>
 
-        {/* ROUND FILTER */}
-        <div className="flex flex-wrap gap-3 mb-8 justify-center">
-          {rounds.map((round) => (
-            <button
-              key={round}
-              onClick={() => setSelectedRound(round)}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
-                selectedRound === round
-                  ? 'bg-orange-500 text-black'
-                  : 'bg-white/5 border border-white/10 text-gray-400 hover:border-orange-400/40'
-              }`}
-            >
-              {round === 'all' ? 'All Matches' : round.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-            </button>
-          ))}
+        {/* Status Filter Buttons */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition ${
+              filterStatus === 'all'
+                ? 'bg-orange-500 text-white'
+                : 'bg-white/5 text-gray-400 hover:text-white'
+            }`}
+          >
+            All Matches
+          </button>
+          <button
+            onClick={() => setFilterStatus('live')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition ${
+              filterStatus === 'live'
+                ? 'bg-red-500 text-white'
+                : 'bg-white/5 text-gray-400 hover:text-white'
+            }`}
+          >
+            Live
+          </button>
+          <button
+            onClick={() => setFilterStatus('upcoming')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition ${
+              filterStatus === 'upcoming'
+                ? 'bg-blue-500 text-white'
+                : 'bg-white/5 text-gray-400 hover:text-white'
+            }`}
+          >
+            Upcoming
+          </button>
+          <button
+            onClick={() => setFilterStatus('completed')}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition ${
+              filterStatus === 'completed'
+                ? 'bg-green-500 text-white'
+                : 'bg-white/5 text-gray-400 hover:text-white'
+            }`}
+          >
+            Completed
+          </button>
         </div>
 
-        {/* FIXTURES LIST */}
-        {filteredFixtures.length === 0 ? (
-          <div className="text-center py-16 border border-white/10 rounded-2xl bg-white/[0.03]">
-            <p className="text-gray-400">No fixtures scheduled yet.</p>
+        {/* Search & Round Filter */}
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="relative w-full">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search team or venue..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 focus:border-orange-400/50 focus:outline-none text-sm"
+            />
+          </div>
+          
+          {rounds.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {rounds.map(round => (
+                <button
+                  key={round}
+                  onClick={() => setFilterRound(round)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition flex-shrink-0 ${
+                    filterRound === round
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-white/5 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {round === 'all' ? 'All Rounds' : round === 'group' ? 'Group Stage' : round}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Fixtures List */}
+        {sortedFixtures.length === 0 ? (
+          <div className="text-center py-12 sm:py-16">
+            <p className="text-gray-500 text-sm">
+              {filterStatus !== 'all' 
+                ? `No ${filterStatus} matches found`
+                : 'No fixtures found'}
+            </p>
+            {(searchTerm || filterStatus !== 'all' || filterRound !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('')
+                  setFilterStatus('all')
+                  setFilterRound('all')
+                }}
+                className="mt-3 text-orange-400 text-xs hover:underline"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         ) : (
-          sortedDates.map((date) => (
-            <div key={date} className="mb-8">
-              {/* Date Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <Calendar size={20} className="text-orange-400" />
-                <h3 className="text-xl font-bold text-white">
-                  {new Date(date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </h3>
-                <div className="flex-1 h-px bg-gradient-to-r from-orange-500/50 to-transparent"></div>
-              </div>
-
-              {/* Matches for this date */}
-              <div className="space-y-4">
-                {groupedFixtures[date].map((fixture) => {
-                  const team1Info = getTeamInfo(fixture.team1)
-                  const team2Info = getTeamInfo(fixture.team2)
-                  const statusBadge = getStatusBadge(fixture.status)
-                  const isCompleted = fixture.status === 'completed'
-                  
-                  return (
-                    <div
-                      key={fixture._id}
-                      className="border border-white/10 rounded-2xl bg-white/[0.03] p-5 hover:border-orange-400/40 transition-all"
-                    >
-                      {/* Match Header */}
-                      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-                        <div className="flex items-center gap-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoundBadge(fixture.round)}`}>
-                            {fixture.round?.toUpperCase()}
-                          </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}>
-                            {statusBadge.label}
-                          </span>
+          <div className="space-y-3 sm:space-y-4">
+            {sortedFixtures.map((fixture, idx) => {
+              const matchStatus = getMatchStatus(fixture)
+              const statusBadge = getStatusBadge(fixture)
+              const completed = matchStatus === 'completed'
+              const team1Name = getTeamName(fixture.team1Id, fixture.team1)
+              const team2Name = getTeamName(fixture.team2Id, fixture.team2)
+              const team1Short = getTeamShort(fixture.team1Id, fixture.team1)
+              const team2Short = getTeamShort(fixture.team2Id, fixture.team2)
+              const winner = fixture.winner
+              const isWinnerTeam1 = winner === fixture.team1
+              
+              // Get goal scorers from fixture
+              const homeScorers = fixture.goalScorers?.home || []
+              const awayScorers = fixture.goalScorers?.away || []
+              
+              return (
+                <div
+                  key={fixture._id?.$oid || fixture._id || idx}
+                  className="rounded-xl bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 transition-all duration-300"
+                >
+                  {/* Top Bar */}
+                  <div className="flex flex-wrap justify-between items-center gap-1 px-3 py-1.5 bg-white/5 border-b border-white/10">
+                    <div className="flex items-center gap-2 text-[10px] sm:text-xs">
+                      <span className="text-gray-500">#{fixture.matchNumber}</span>
+                      <span className="text-gray-600 hidden sm:inline">|</span>
+                      <div className="flex items-center gap-1 text-gray-500">
+                        <Calendar size={10} />
+                        <span>{formatDate(fixture.date)}</span>
+                      </div>
+                      {fixture.time && (
+                        <div className="flex items-center gap-1 text-gray-500">
+                          <Clock size={9} />
+                          <span className="hidden sm:inline">{fixture.time}</span>
+                          <span className="sm:hidden">{fixture.time.slice(0,5)}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-gray-400 text-sm">
-                          <span className="flex items-center gap-1"><Clock size={14} />{fixture.time}</span>
-                          <span className="flex items-center gap-1"><MapPin size={14} />{fixture.venue}</span>
+                      )}
+                    </div>
+                    <span className={`text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded font-medium ${statusBadge.bg} ${statusBadge.color} border ${statusBadge.border}`}>
+                      {statusBadge.label}
+                    </span>
+                  </div>
+
+                  {/* Match Content */}
+                  <div className="p-3 sm:p-5">
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Team 1 */}
+                      <div className="flex-1 text-right min-w-0">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2">
+                          <span className={`text-xs sm:text-base font-semibold truncate ${completed && isWinnerTeam1 ? 'text-green-400' : 'text-white'}`}>
+                            {team1Name}
+                          </span>
+                          <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 shadow-lg ${
+                            completed && isWinnerTeam1 
+                              ? 'bg-gradient-to-br from-green-500 to-green-700' 
+                              : 'bg-gradient-to-br from-orange-500 to-red-600'
+                          }`}>
+                            {team1Short}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Teams and Score */}
-                      <div className="flex items-center justify-between gap-4 py-4">
-                        {/* Team 1 */}
-                        <div className="flex-1 text-center">
-                          <div className="text-5xl mb-2">{team1Info.logo}</div>
-                          <div className="font-bold text-white">{fixture.team1}</div>
-                        </div>
+                      {/* Score */}
+                      <div className="text-center flex-shrink-0 min-w-[50px] sm:min-w-[70px]">
+                        {completed ? (
+                          <div className="text-base sm:text-2xl font-bold">
+                            <span className={completed && isWinnerTeam1 ? 'text-green-400' : 'text-white'}>
+                              {fixture.score1 || 0}
+                            </span>
+                            <span className="text-gray-500 text-xs sm:text-base mx-0.5 sm:mx-1">-</span>
+                            <span className={completed && !isWinnerTeam1 && winner ? 'text-green-400' : 'text-white'}>
+                              {fixture.score2 || 0}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] sm:text-xs text-gray-500">VS</div>
+                        )}
+                        {completed && fixture.penaltyShootout && (
+                          <div className="text-[7px] sm:text-[9px] text-gray-500 mt-0.5">
+                            ({fixture.penaltyScore1}-{fixture.penaltyScore2})
+                          </div>
+                        )}
+                      </div>
 
-                        {/* Score */}
-                        <div className="text-center min-w-[100px]">
-                          {isCompleted ? (
-                            <>
-                              <div className="text-3xl font-bold">
-                                <span className={fixture.score1 > fixture.score2 ? 'text-green-400' : fixture.score1 === fixture.score2 ? 'text-yellow-400' : 'text-red-400'}>
-                                  {fixture.score1}
-                                </span>
-                                <span className="text-gray-400 mx-2">-</span>
-                                <span className={fixture.score2 > fixture.score1 ? 'text-green-400' : fixture.score1 === fixture.score2 ? 'text-yellow-400' : 'text-red-400'}>
-                                  {fixture.score2}
-                                </span>
-                              </div>
-                              {fixture.penaltyShootout && (
-                                <div className="text-xs text-yellow-400 mt-1">
-                                  Pen: {fixture.penaltyScore1} - {fixture.penaltyScore2}
-                                </div>
-                              )}
-                              {fixture.winner && (
-                                <div className="text-xs text-green-400 mt-1">
-                                  Winner: {fixture.winner}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-2xl font-bold text-gray-500">VS</div>
-                          )}
-                        </div>
-
-                        {/* Team 2 */}
-                        <div className="flex-1 text-center">
-                          <div className="text-5xl mb-2">{team2Info.logo}</div>
-                          <div className="font-bold text-white">{fixture.team2}</div>
+                      {/* Team 2 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 shadow-lg ${
+                            completed && !isWinnerTeam1 && winner 
+                              ? 'bg-gradient-to-br from-green-500 to-green-700' 
+                              : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          }`}>
+                            {team2Short}
+                          </div>
+                          <span className={`text-xs sm:text-base font-semibold truncate ${completed && !isWinnerTeam1 && winner ? 'text-green-400' : 'text-white'}`}>
+                            {team2Name}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  )
-                })}
+
+                    {/* Goal Scorers Section */}
+                    {completed && (homeScorers.length > 0 || awayScorers.length > 0) && (
+  <div className="mt-3 pt-2 border-t border-white/10">
+    <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center gap-1">
+        <Goal size={10} className="text-yellow-400" />
+        <span className="text-[10px] text-gray-400 font-medium">Goal Scorers</span>
+      </div>
+      <div className="text-[9px] text-gray-500">
+        {homeScorers.length + awayScorers.length} goals
+      </div>
+    </div>
+    
+    <div className="flex flex-col sm:flex-row justify-between gap-2">
+      {/* Home Team Scorers - Left Side */}
+      <div className="flex-1 text-left">
+        {homeScorers.length > 0 ? (
+          <div className="space-y-0.5">
+            <div className="text-[9px] text-orange-400 font-medium mb-1">🏠 {team1Name}</div>
+            {homeScorers.map((scorer, i) => (
+              <div key={`home-${i}`} className="flex items-center gap-1 text-[9px] sm:text-[10px]">
+                <span className="text-orange-400">⚽</span>
+                <span className="text-white">{scorer.playerName || getPlayerName(scorer.playerId)}</span>
+                {scorer.time && <span className="text-gray-500">({scorer.time}')</span>}
               </div>
-            </div>
-          ))
+            ))}
+          </div>
+        ) : (
+          <div className="text-[9px] text-gray-600 italic">No goals</div>
+        )}
+      </div>
+
+      {/* VS Divider - Only visible on desktop */}
+      <div className="hidden sm:flex items-center justify-center px-2">
+        <span className="text-[10px] text-gray-600">vs</span>
+      </div>
+
+      {/* Away Team Scorers - Right Side */}
+      <div className="flex-1 text-left sm:text-right">
+        {awayScorers.length > 0 ? (
+          <div className="space-y-0.5">
+            <div className="text-[9px] text-blue-400 font-medium mb-1">✈️ {team2Name}</div>
+            {awayScorers.map((scorer, i) => (
+              <div key={`away-${i}`} className="flex items-center gap-1 text-[9px] sm:text-[10px] sm:justify-end">
+                {scorer.time && <span className="text-gray-500 order-1 sm:order-none">({scorer.time}')</span>}
+                <span className="text-white order-2 sm:order-none">{scorer.playerName || getPlayerName(scorer.playerId)}</span>
+                <span className="text-blue-400 order-3">⚽</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-[9px] text-gray-600 italic text-right">No goals</div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+                    {/* Bottom Info */}
+                    <div className="mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-white/10 flex flex-wrap justify-between items-center gap-1 text-[10px] sm:text-xs">
+                      {winner && completed && (
+                        <div className="flex items-center gap-1 text-green-400">
+                          <Crown size={10} />
+                          <span className="truncate max-w-[120px] sm:max-w-none">Winner: {winner}</span>
+                        </div>
+                      )}
+                      {fixture.venue && (
+                        <div className="flex items-center gap-1 text-gray-500 ml-auto">
+                          <MapPin size={10} />
+                          <span className="truncate max-w-[100px] sm:max-w-none">{fixture.venue}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
 
-        {/* FOOTER */}
-        <div className="mt-12 pt-6 border-t border-white/10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400">
-            <Trophy size={12} />
-            Friendship Cup 2026 • All times are Bangladesh Standard Time (BST)
-          </div>
+        {/* Footer */}
+        <div className="mt-8 sm:mt-10 pt-4 sm:pt-6 border-t border-white/10 text-center">
+          <p className="text-gray-600 text-[10px] sm:text-xs">
+            Friendship Cup 2026 • Tournament Schedule
+          </p>
         </div>
-
       </div>
-    </section>
+    </div>
   )
 }
 
-export default Fixtures
+export default PublicFixtures

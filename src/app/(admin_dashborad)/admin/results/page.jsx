@@ -3,156 +3,770 @@ import React, { useState, useEffect } from 'react'
 import GroupManager from '@/app/components/groupManager'
 
 const C = {
-  bg: "#06060f", surface: "#0c0c1d", card: "#101024", border: "#1c1c38",
-  accent: "#00d4ff", green: "#00e676", red: "#ff3d6b", yellow: "#ffd740",
-  text: "#e2e4f0", muted: "#4a4a6a",
+  bg: "#000000",
+  surface: "#0a0a0a",
+  card: "#111111",
+  border: "#222222",
+  accent: "#f97316",
+  accentHover: "#ea580c",
+  green: "#22c55e",
+  red: "#ef4444",
+  yellow: "#eab308",
+  orange: "#f97316",
+  text: "#ffffff",
+  textMuted: "#6b7280",
+  muted: "#4a4a4a",
 }
 
+const IS = {
+  width: "100%", boxSizing: "border-box", padding: "10px 14px",
+  background: "#0a0a0a", border: `1px solid #222222`,
+  borderRadius: 10, color: "#ffffff", fontSize: 14, outline: "none",
+  transition: "all 0.2s",
+}
+
+const buttonStyle = {
+  padding: "10px 16px",
+  borderRadius: 10,
+  border: "none",
+  fontWeight: 600,
+  cursor: "pointer",
+  fontSize: 13,
+  transition: "all 0.2s",
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADD RESULT COMPONENT
+══════════════════════════════════════════════════════════ */
+const AddResult = ({ fixtures, players, onResultAdded }) => {
+  const [form, setForm] = useState({
+    fixtureId: "", homeScore: 0, awayScore: 0,
+    homeScorers: [], awayScorers: [],
+    manualOverride: false, overrideResult: "", reason: ""
+  })
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const selectedFixture = fixtures.find(f => f._id === form.fixtureId)
+
+  const getTeamName = (fixture, side) => {
+    if (!fixture) return side === "home" ? "Home" : "Away"
+    return side === "home" ? (fixture.homeTeam || fixture.team1 || "Home") : (fixture.awayTeam || fixture.team2 || "Away")
+  }
+
+  const getTeamPlayers = () => {
+    if (!selectedFixture) return { home: [], away: [] }
+    const homeTeamName = getTeamName(selectedFixture, "home")
+    const awayTeamName = getTeamName(selectedFixture, "away")
+    const homePlayers = players.filter(p => p.teamName === homeTeamName || p.teamId === selectedFixture.homeTeamId)
+    const awayPlayers = players.filter(p => p.teamName === awayTeamName || p.teamId === selectedFixture.awayTeamId)
+    return { home: homePlayers, away: awayPlayers }
+  }
+
+  const { home: homePlayers, away: awayPlayers } = getTeamPlayers()
+
+  const addScorer = (team) => {
+    if (team === 'home') {
+      setForm(f => ({ ...f, homeScorers: [...f.homeScorers, { playerId: '', playerName: '', time: '' }], homeScore: f.homeScore + 1 }))
+    } else {
+      setForm(f => ({ ...f, awayScorers: [...f.awayScorers, { playerId: '', playerName: '', time: '' }], awayScore: f.awayScore + 1 }))
+    }
+  }
+
+  const removeScorer = (team, index) => {
+    if (team === 'home') {
+      const newScorers = form.homeScorers.filter((_, i) => i !== index)
+      setForm(f => ({ ...f, homeScorers: newScorers, homeScore: Math.max(0, f.homeScore - 1) }))
+    } else {
+      const newScorers = form.awayScorers.filter((_, i) => i !== index)
+      setForm(f => ({ ...f, awayScorers: newScorers, awayScore: Math.max(0, f.awayScore - 1) }))
+    }
+  }
+
+  const updateScorer = (team, index, field, value) => {
+    if (team === 'home') {
+      const newScorers = [...form.homeScorers]
+      newScorers[index][field] = value
+      if (field === 'playerId') {
+        const player = homePlayers.find(p => p._id === value)
+        if (player) newScorers[index].playerName = player.name
+      }
+      setForm(f => ({ ...f, homeScorers: newScorers }))
+    } else {
+      const newScorers = [...form.awayScorers]
+      newScorers[index][field] = value
+      if (field === 'playerId') {
+        const player = awayPlayers.find(p => p._id === value)
+        if (player) newScorers[index].playerName = player.name
+      }
+      setForm(f => ({ ...f, awayScorers: newScorers }))
+    }
+  }
+
+  const updateScore = (team, newScore) => {
+    if (team === 'home') {
+      setForm(f => ({ ...f, homeScore: newScore }))
+      if (newScore > form.homeScorers.length) {
+        const toAdd = newScore - form.homeScorers.length
+        for (let i = 0; i < toAdd; i++) {
+          setForm(f => ({ ...f, homeScorers: [...f.homeScorers, { playerId: '', playerName: '', time: '' }] }))
+        }
+      } else if (newScore < form.homeScorers.length) {
+        setForm(f => ({ ...f, homeScorers: f.homeScorers.slice(0, newScore) }))
+      }
+    } else {
+      setForm(f => ({ ...f, awayScore: newScore }))
+      if (newScore > form.awayScorers.length) {
+        const toAdd = newScore - form.awayScorers.length
+        for (let i = 0; i < toAdd; i++) {
+          setForm(f => ({ ...f, awayScorers: [...f.awayScorers, { playerId: '', playerName: '', time: '' }] }))
+        }
+      } else if (newScore < form.awayScorers.length) {
+        setForm(f => ({ ...f, awayScorers: f.awayScorers.slice(0, newScore) }))
+      }
+    }
+  }
+
+  const resetForm = () => {
+    setForm({
+      fixtureId: "", homeScore: 0, awayScore: 0,
+      homeScorers: [], awayScorers: [],
+      manualOverride: false, overrideResult: "", reason: ""
+    })
+  }
+
+  const getWinnerLabel = () => {
+    if (!selectedFixture) return "—"
+    const home = getTeamName(selectedFixture, "home")
+    const away = getTeamName(selectedFixture, "away")
+    
+    if (form.manualOverride && form.overrideResult) {
+      if (form.overrideResult === "homeWin") return `⚠️ ${home} awarded win (${form.homeScore}-${form.awayScore})`
+      if (form.overrideResult === "awayWin") return `⚠️ ${away} awarded win (${form.homeScore}-${form.awayScore})`
+      if (form.overrideResult === "draw") return `⚠️ Match declared Draw (${form.homeScore}-${form.awayScore})`
+    }
+    
+    if (form.homeScore > form.awayScore) return `🏆 ${home} wins`
+    if (form.awayScore > form.homeScore) return `🏆 ${away} wins`
+    if (form.homeScore === form.awayScore && form.homeScore > 0) return "🤝 Draw"
+    return "—"
+  }
+
+  const handleSubmit = async () => {
+    if (!form.fixtureId) return setMsg({ type: "error", text: "Select a fixture" })
+    
+    setLoading(true)
+    try {
+      let score1 = form.homeScore
+      let score2 = form.awayScore
+      let winner = null
+      let notes = null
+      let goalScorers = { home: form.homeScorers.filter(s => s.playerId), away: form.awayScorers.filter(s => s.playerId) }
+
+      if (form.manualOverride && form.overrideResult) {
+        const home = getTeamName(selectedFixture, "home")
+        const away = getTeamName(selectedFixture, "away")
+        
+        if (form.overrideResult === "homeWin") {
+          winner = home
+          notes = `MANUAL: ${home} awarded win (${score1}-${score2}). Reason: ${form.reason || 'Official decision'}`
+        } else if (form.overrideResult === "awayWin") {
+          winner = away
+          notes = `MANUAL: ${away} awarded win (${score1}-${score2}). Reason: ${form.reason || 'Official decision'}`
+        } else if (form.overrideResult === "draw") {
+          winner = null
+          notes = `MANUAL: Match declared Draw (${score1}-${score2}). Reason: ${form.reason || 'Official decision'}`
+        }
+      } else {
+        winner = form.homeScore > form.awayScore ? getTeamName(selectedFixture, "home") : 
+                 form.awayScore > form.homeScore ? getTeamName(selectedFixture, "away") : null
+      }
+
+      const res = await fetch("/api/fixtures", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: form.fixtureId,
+          score1,
+          score2,
+          goalScorers,
+          status: "completed",
+          winner,
+          notes,
+          updatedAt: new Date(),
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMsg({ type: "success", text: "Result saved!" })
+        resetForm()
+        if (onResultAdded) onResultAdded()
+      } else {
+        setMsg({ type: "error", text: data.message || "Failed to save result" })
+      }
+    } catch (err) {
+      setMsg({ type: "error", text: "Network error" })
+    } finally {
+      setLoading(false)
+      setTimeout(() => setMsg(null), 3000)
+    }
+  }
+
+  const unresolved = fixtures.filter(f => f.status !== "completed" && f.status !== "cancelled")
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+        <h3 style={{ color: C.accent, fontSize: 16, fontWeight: 700, margin: 0 }}>📊 Add Result</h3>
+        <button onClick={resetForm} style={{ ...buttonStyle, background: C.red, color: "#fff", padding: "6px 14px", fontSize: 12 }}>Reset</button>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Select Match</div>
+        <select 
+          value={form.fixtureId} 
+          onChange={e => setField("fixtureId", e.target.value)} 
+          style={{ ...IS, cursor: "pointer", background: C.surface }}
+        >
+          <option value="">— Pick a match —</option>
+          {unresolved.map(f => (
+            <option key={f._id} value={f._id}>
+              {f.homeTeam || f.team1} vs {f.awayTeam || f.team2} · {f.round}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {selectedFixture && (
+        <>
+          {/* Manual Override Toggle */}
+          <div style={{ marginBottom: 14, padding: 12, background: `${C.accent}10`, borderRadius: 10, border: `1px solid ${C.accent}30` }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: form.manualOverride ? 12 : 0 }}>
+              <input type="checkbox" checked={form.manualOverride} onChange={e => setField("manualOverride", e.target.checked)} />
+              <span style={{ color: C.accent, fontWeight: 600, fontSize: 13 }}>⚠️ Manual Override</span>
+            </label>
+            
+            {form.manualOverride && (
+              <div>
+                <select 
+                  value={form.overrideResult} 
+                  onChange={e => setField("overrideResult", e.target.value)} 
+                  style={{ ...IS, fontSize: 13, marginBottom: 10, background: C.surface }}
+                >
+                  <option value="">— Select decision —</option>
+                  <option value="homeWin">🏆 {getTeamName(selectedFixture, "home")} Wins</option>
+                  <option value="awayWin">🏆 {getTeamName(selectedFixture, "away")} Wins</option>
+                  <option value="draw">🤝 Draw</option>
+                </select>
+                <input 
+                  type="text" 
+                  placeholder="Reason (optional)" 
+                  value={form.reason} 
+                  onChange={e => setField("reason", e.target.value)} 
+                  style={{ ...IS, background: C.surface }} 
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Score Entry */}
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>{getTeamName(selectedFixture, "home")}</div>
+              <input 
+                type="number" 
+                min="0" 
+                value={form.homeScore} 
+                onChange={e => updateScore('home', +e.target.value)} 
+                style={{ ...IS, fontSize: 28, fontWeight: 700, textAlign: "center", width: "90px", background: C.surface }} 
+              />
+            </div>
+            <div style={{ fontSize: 24, color: C.textMuted, fontWeight: 700 }}>VS</div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>{getTeamName(selectedFixture, "away")}</div>
+              <input 
+                type="number" 
+                min="0" 
+                value={form.awayScore} 
+                onChange={e => updateScore('away', +e.target.value)} 
+                style={{ ...IS, fontSize: 28, fontWeight: 700, textAlign: "center", width: "90px", background: C.surface }} 
+              />
+            </div>
+          </div>
+
+          {/* Home Scorers */}
+          {form.homeScore > 0 && (
+            <div style={{ marginBottom: 12, padding: 12, background: C.surface, borderRadius: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ color: C.green, fontSize: 12, fontWeight: 600 }}>⚽ {getTeamName(selectedFixture, "home")} Scorers</div>
+                <button onClick={() => addScorer('home')} style={{ ...buttonStyle, background: C.green, color: "#000", padding: "4px 12px", fontSize: 11 }}>+ Add</button>
+              </div>
+              {form.homeScorers.map((scorer, idx) => (
+                <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <select 
+                    value={scorer.playerId} 
+                    onChange={e => updateScorer('home', idx, 'playerId', e.target.value)} 
+                    style={{ ...IS, flex: 2, fontSize: 12, padding: "7px 10px", background: "#000" }}
+                  >
+                    <option value="">Select player</option>
+                    {homePlayers.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                  </select>
+                  <input 
+                    type="text" 
+                    placeholder="Min" 
+                    value={scorer.time} 
+                    onChange={e => updateScorer('home', idx, 'time', e.target.value)} 
+                    style={{ ...IS, flex: 1, fontSize: 12, padding: "7px 10px", textAlign: "center", background: "#000" }} 
+                  />
+                  <button onClick={() => removeScorer('home', idx)} style={{ background: C.red, border: "none", borderRadius: 8, color: "#fff", padding: "6px 12px", cursor: "pointer", fontSize: 11 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Away Scorers */}
+          {form.awayScore > 0 && (
+            <div style={{ marginBottom: 12, padding: 12, background: C.surface, borderRadius: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ color: C.accent, fontSize: 12, fontWeight: 600 }}>⚽ {getTeamName(selectedFixture, "away")} Scorers</div>
+                <button onClick={() => addScorer('away')} style={{ ...buttonStyle, background: C.accent, color: "#000", padding: "4px 12px", fontSize: 11 }}>+ Add</button>
+              </div>
+              {form.awayScorers.map((scorer, idx) => (
+                <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <select 
+                    value={scorer.playerId} 
+                    onChange={e => updateScorer('away', idx, 'playerId', e.target.value)} 
+                    style={{ ...IS, flex: 2, fontSize: 12, padding: "7px 10px", background: "#000" }}
+                  >
+                    <option value="">Select player</option>
+                    {awayPlayers.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                  </select>
+                  <input 
+                    type="text" 
+                    placeholder="Min" 
+                    value={scorer.time} 
+                    onChange={e => updateScorer('away', idx, 'time', e.target.value)} 
+                    style={{ ...IS, flex: 1, fontSize: 12, padding: "7px 10px", textAlign: "center", background: "#000" }} 
+                  />
+                  <button onClick={() => removeScorer('away', idx)} style={{ background: C.red, border: "none", borderRadius: 8, color: "#fff", padding: "6px 12px", cursor: "pointer", fontSize: 11 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Winner Preview */}
+          <div style={{ background: C.surface, borderRadius: 10, padding: "10px", marginBottom: 14, textAlign: "center", border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: getWinnerLabel().includes("Draw") ? C.yellow : (getWinnerLabel().includes("⚠️") ? C.orange : C.green) }}>
+              {getWinnerLabel()}
+            </div>
+          </div>
+        </>
+      )}
+
+      {msg && (
+        <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 10, background: msg.type === "success" ? `${C.green}20` : `${C.red}20`, color: msg.type === "success" ? C.green : C.red, fontWeight: 500, fontSize: 13 }}>
+          {msg.text}
+        </div>
+      )}
+
+      <button 
+        onClick={handleSubmit} 
+        disabled={loading || !form.fixtureId} 
+        style={{
+          width: "100%", padding: 12, background: loading ? C.muted : (form.manualOverride ? C.accent : C.green),
+          border: "none", borderRadius: 10, color: loading ? C.textMuted : "#000", fontWeight: 700, fontSize: 14,
+          cursor: loading ? "not-allowed" : "pointer", transition: "all 0.2s"
+        }}
+      >
+        {loading ? "Saving..." : (form.manualOverride ? "⚠️ Save Manual Result" : "✓ Save Result")}
+      </button>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESULTS LIST COMPONENT
+══════════════════════════════════════════════════════════ */
+const ResultsList = ({ fixtures, players, onDelete, onEdit }) => {
+  const completed = fixtures.filter(f => f.status === "completed")
+
+  const getWinnerLabel = (f) => {
+    const home = f.homeTeam || f.team1 || "Home"
+    const away = f.awayTeam || f.team2 || "Away"
+    
+    if (f.notes && f.notes.includes("MANUAL")) {
+      return { label: f.notes.replace("MANUAL: ", "").substring(0, 50), color: C.accent }
+    }
+    if (f.score1 > f.score2) return { label: `${home} wins`, color: C.green }
+    if (f.score2 > f.score1) return { label: `${away} wins`, color: C.green }
+    return { label: "Draw", color: C.yellow }
+  }
+
+  if (completed.length === 0) {
+    return <div style={{ background: C.card, borderRadius: 16, padding: 40, textAlign: "center", color: C.textMuted }}>No results yet.</div>
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {completed.map(f => {
+        const w = getWinnerLabel(f)
+        const home = f.homeTeam || f.team1
+        const away = f.awayTeam || f.team2
+        const homeScorers = f.goalScorers?.home || []
+        const awayScorers = f.goalScorers?.away || []
+        
+        return (
+          <div key={f._id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: `${C.accent}20`, color: C.accent }}>{f.round}</span>
+              <span style={{ fontSize: 11, color: C.textMuted }}>{f.date}</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => onEdit(f)} style={{ ...buttonStyle, background: `${C.accent}20`, color: C.accent, padding: "4px 12px", fontSize: 11 }}>Edit</button>
+                <button onClick={() => onDelete(f._id)} style={{ ...buttonStyle, background: `${C.red}20`, color: C.red, padding: "4px 12px", fontSize: 11 }}>Reset</button>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 700, fontSize: 13, textAlign: "right", flex: 1 }}>{home}</span>
+              <div style={{ background: C.surface, padding: "6px 14px", borderRadius: 10, display: "flex", gap: 8, border: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: f.score1 > f.score2 ? C.green : C.text }}>{f.score1}</span>
+                <span style={{ color: C.textMuted, fontWeight: 600 }}>-</span>
+                <span style={{ fontSize: 18, fontWeight: 700, color: f.score2 > f.score1 ? C.green : C.text }}>{f.score2}</span>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 13, flex: 1 }}>{away}</span>
+            </div>
+
+            {(homeScorers.length > 0 || awayScorers.length > 0) && (
+              <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 8, padding: "6px 0", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+                {homeScorers.length > 0 && <div>⚽ {home}: {homeScorers.map(s => `${s.playerName}${s.time ? ` (${s.time}')` : ''}`).join(', ')}</div>}
+                {awayScorers.length > 0 && <div>⚽ {away}: {awayScorers.map(s => `${s.playerName}${s.time ? ` (${s.time}')` : ''}`).join(', ')}</div>}
+              </div>
+            )}
+
+            <div style={{ fontSize: 11, color: w.color, fontWeight: 500 }}>{w.label}</div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   EDIT MATCH MODAL
+══════════════════════════════════════════════════════════ */
+const EditMatchModal = ({ match, players, onClose, onSave, onReset }) => {
+  const [score1, setScore1] = useState(match.score1 || 0)
+  const [score2, setScore2] = useState(match.score2 || 0)
+  const [homeScorers, setHomeScorers] = useState(match.goalScorers?.home || [])
+  const [awayScorers, setAwayScorers] = useState(match.goalScorers?.away || [])
+  
+  const home = match.homeTeam || match.team1
+  const away = match.awayTeam || match.team2
+  
+  const homeTeamPlayers = players.filter(p => p.teamName === home || p.teamId === match.homeTeamId)
+  const awayTeamPlayers = players.filter(p => p.teamName === away || p.teamId === match.awayTeamId)
+
+  const addScorer = (team) => {
+    if (team === 'home') {
+      setHomeScorers([...homeScorers, { playerId: '', playerName: '', time: '' }])
+      setScore1(score1 + 1)
+    } else {
+      setAwayScorers([...awayScorers, { playerId: '', playerName: '', time: '' }])
+      setScore2(score2 + 1)
+    }
+  }
+
+  const removeScorer = (team, idx) => {
+    if (team === 'home') {
+      setHomeScorers(homeScorers.filter((_, i) => i !== idx))
+      setScore1(score1 - 1)
+    } else {
+      setAwayScorers(awayScorers.filter((_, i) => i !== idx))
+      setScore2(score2 - 1)
+    }
+  }
+
+  const updateScorer = (team, idx, field, value) => {
+    if (team === 'home') {
+      const newScorers = [...homeScorers]
+      newScorers[idx][field] = value
+      if (field === 'playerId') {
+        const player = homeTeamPlayers.find(p => p._id === value)
+        if (player) newScorers[idx].playerName = player.name
+      }
+      setHomeScorers(newScorers)
+    } else {
+      const newScorers = [...awayScorers]
+      newScorers[idx][field] = value
+      if (field === 'playerId') {
+        const player = awayTeamPlayers.find(p => p._id === value)
+        if (player) newScorers[idx].playerName = player.name
+      }
+      setAwayScorers(newScorers)
+    }
+  }
+
+  const updateScore = (team, newScore) => {
+    if (team === 'home') {
+      setScore1(newScore)
+      if (newScore > homeScorers.length) {
+        const toAdd = newScore - homeScorers.length
+        for (let i = 0; i < toAdd; i++) {
+          setHomeScorers(prev => [...prev, { playerId: '', playerName: '', time: '' }])
+        }
+      } else if (newScore < homeScorers.length) {
+        setHomeScorers(homeScorers.slice(0, newScore))
+      }
+    } else {
+      setScore2(newScore)
+      if (newScore > awayScorers.length) {
+        const toAdd = newScore - awayScorers.length
+        for (let i = 0; i < toAdd; i++) {
+          setAwayScorers(prev => [...prev, { playerId: '', playerName: '', time: '' }])
+        }
+      } else if (newScore < awayScorers.length) {
+        setAwayScorers(awayScorers.slice(0, newScore))
+      }
+    }
+  }
+
+  const handleReset = () => {
+    if (onReset && confirm("Reset this match? All data will be lost.")) {
+      onReset(match._id)
+      onClose()
+    }
+  }
+
+  const handleSave = () => {
+    const winner = score1 > score2 ? home : score2 > score1 ? away : null
+    onSave(match._id, score1, score2, { home: homeScorers.filter(s => s.playerId), away: awayScorers.filter(s => s.playerId) }, winner)
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.95)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflow: "auto" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 20, maxWidth: 500, width: "100%", maxHeight: "90vh", overflow: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <h2 style={{ color: C.text, fontSize: 16, fontWeight: 700, margin: 0 }}>✏️ Edit: {home} vs {away}</h2>
+          <button onClick={handleReset} style={{ ...buttonStyle, background: C.red, color: "#fff", padding: "6px 14px", fontSize: 12 }}>Reset Match</button>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>{home}</div>
+            <input type="number" min="0" value={score1} onChange={e => updateScore('home', +e.target.value)} style={{ ...IS, fontSize: 28, fontWeight: 700, textAlign: "center", width: "80px", background: C.surface }} />
+          </div>
+          <div style={{ fontSize: 20, color: C.textMuted, fontWeight: 700 }}>VS</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 600, marginBottom: 6 }}>{away}</div>
+            <input type="number" min="0" value={score2} onChange={e => updateScore('away', +e.target.value)} style={{ ...IS, fontSize: 28, fontWeight: 700, textAlign: "center", width: "80px", background: C.surface }} />
+          </div>
+        </div>
+
+        {score1 > 0 && (
+          <div style={{ marginBottom: 14, padding: 12, background: C.surface, borderRadius: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ color: C.green, fontSize: 12, fontWeight: 600 }}>⚽ {home} Scorers</div>
+              <button onClick={() => addScorer('home')} style={{ ...buttonStyle, background: C.green, color: "#000", padding: "4px 12px", fontSize: 11 }}>+ Add</button>
+            </div>
+            {homeScorers.map((scorer, idx) => (
+              <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <select value={scorer.playerId} onChange={e => updateScorer('home', idx, 'playerId', e.target.value)} style={{ ...IS, flex: 2, fontSize: 12, padding: "7px 10px", background: "#000" }}>
+                  <option value="">Select player</option>
+                  {homeTeamPlayers.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                </select>
+                <input type="text" placeholder="Min" value={scorer.time} onChange={e => updateScorer('home', idx, 'time', e.target.value)} style={{ ...IS, flex: 1, fontSize: 12, padding: "7px 10px", textAlign: "center", background: "#000" }} />
+                <button onClick={() => removeScorer('home', idx)} style={{ background: C.red, border: "none", borderRadius: 8, color: "#fff", padding: "6px 12px", cursor: "pointer", fontSize: 11 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {score2 > 0 && (
+          <div style={{ marginBottom: 14, padding: 12, background: C.surface, borderRadius: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ color: C.accent, fontSize: 12, fontWeight: 600 }}>⚽ {away} Scorers</div>
+              <button onClick={() => addScorer('away')} style={{ ...buttonStyle, background: C.accent, color: "#000", padding: "4px 12px", fontSize: 11 }}>+ Add</button>
+            </div>
+            {awayScorers.map((scorer, idx) => (
+              <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <select value={scorer.playerId} onChange={e => updateScorer('away', idx, 'playerId', e.target.value)} style={{ ...IS, flex: 2, fontSize: 12, padding: "7px 10px", background: "#000" }}>
+                  <option value="">Select player</option>
+                  {awayTeamPlayers.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                </select>
+                <input type="text" placeholder="Min" value={scorer.time} onChange={e => updateScorer('away', idx, 'time', e.target.value)} style={{ ...IS, flex: 1, fontSize: 12, padding: "7px 10px", textAlign: "center", background: "#000" }} />
+                <button onClick={() => removeScorer('away', idx)} style={{ background: C.red, border: "none", borderRadius: 8, color: "#fff", padding: "6px 12px", cursor: "pointer", fontSize: 11 }}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleSave} style={{ ...buttonStyle, flex: 1, background: C.green, color: "#000" }}>Save</button>
+          <button onClick={onClose} style={{ ...buttonStyle, flex: 1, background: C.red, color: "#fff" }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   STANDINGS COMPONENT
+══════════════════════════════════════════════════════════ */
+const StandingsTable = ({ standings, title, accentColor }) => {
+  if (standings.length === 0) {
+    return <div style={{ textAlign: "center", padding: 40, color: C.textMuted }}>No data available</div>
+  }
+
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "auto" }}>
+      <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+        <h3 style={{ color: accentColor, fontSize: 16, fontWeight: 700, margin: 0 }}>{title}</h3>
+      </div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>#</th>
+              <th style={{ padding: "12px 12px", textAlign: "left", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Team</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>P</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>W</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>D</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>L</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>GF</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>GA</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>GD</th>
+              <th style={{ padding: "12px 8px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Pts</th>
+             </tr>
+          </thead>
+          <tbody>
+            {standings.map((team, idx) => (
+              <tr key={team.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: "10px 8px", textAlign: "center", fontWeight: 700, color: idx < 2 ? C.accent : C.text, fontSize: 12 }}>{idx + 1}</td>
+                <td style={{ padding: "10px 12px", textAlign: "left" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 20 }}>{team.logo || '⚽'}</span>
+                    <span style={{ color: C.text, fontWeight: 600, fontSize: 13 }}>{team.name}</span>
+                  </div>
+                </td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.text, fontSize: 12 }}>{team.played}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.green, fontWeight: 600, fontSize: 12 }}>{team.wins}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.yellow, fontWeight: 600, fontSize: 12 }}>{team.draws}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.red, fontWeight: 600, fontSize: 12 }}>{team.losses}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.green, fontSize: 12 }}>{team.goalsFor}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.red, fontSize: 12 }}>{team.goalsAgainst}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.accent, fontWeight: 600, fontSize: 12 }}>{team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}</td>
+                <td style={{ padding: "10px 8px", textAlign: "center", color: C.accent, fontWeight: 700, fontSize: 14 }}>{team.points}</td>
+               </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN RESULTS PAGE
+══════════════════════════════════════════════════════════ */
 const ResultsPage = () => {
   const [fixtures, setFixtures] = useState([])
   const [teams, setTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedRound, setSelectedRound] = useState('all')
-  const [activeTab, setActiveTab] = useState('matches')
+  const [activeTab, setActiveTab] = useState('add')
   const [showGroupManager, setShowGroupManager] = useState(false)
   const [customGroupAssignments, setCustomGroupAssignments] = useState(null)
   const [editingMatch, setEditingMatch] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [groupConfig, setGroupConfig] = useState({
-    groups: 2,
-    teamsPerGroup: 4,
-    teamsAdvancing: 2
-  })
+  const [groupConfig, setGroupConfig] = useState({ groups: 2, teamsPerGroup: 4, teamsAdvancing: 2 })
 
-  // Group configuration presets
   const groupPresets = {
-    "2x3": { groups: 2, teamsPerGroup: 3, teamsAdvancing: 2, name: "2 Groups of 3 (6 teams)" },
-    "2x4": { groups: 2, teamsPerGroup: 4, teamsAdvancing: 2, name: "2 Groups of 4 (8 teams)" },
-    "2x5": { groups: 2, teamsPerGroup: 5, teamsAdvancing: 2, name: "2 Groups of 5 (10 teams)" },
-    "2x6": { groups: 2, teamsPerGroup: 6, teamsAdvancing: 2, name: "2 Groups of 6 (12 teams)" },
-    "3x4": { groups: 3, teamsPerGroup: 4, teamsAdvancing: 2, name: "3 Groups of 4 (12 teams)" },
-    "4x4": { groups: 4, teamsPerGroup: 4, teamsAdvancing: 1, name: "4 Groups of 4 (16 teams)" },
-    "4x3": { groups: 4, teamsPerGroup: 3, teamsAdvancing: 1, name: "4 Groups of 3 (12 teams)" },
-    "6x3": { groups: 6, teamsPerGroup: 3, teamsAdvancing: 1, name: "6 Groups of 3 (18 teams)" },
+    "2x3": { groups: 2, teamsPerGroup: 3, teamsAdvancing: 2, name: "2 Groups of 3" },
+    "2x4": { groups: 2, teamsPerGroup: 4, teamsAdvancing: 2, name: "2 Groups of 4" },
+    "2x5": { groups: 2, teamsPerGroup: 5, teamsAdvancing: 2, name: "2 Groups of 5" },
+    "3x4": { groups: 3, teamsPerGroup: 4, teamsAdvancing: 2, name: "3 Groups of 4" },
+    "4x4": { groups: 4, teamsPerGroup: 4, teamsAdvancing: 1, name: "4 Groups of 4" },
   }
 
-  // Fetch all data
   useEffect(() => {
     fetchData()
-    loadSavedGroupAssignments()
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("groupAssignments")
+      if (saved) setCustomGroupAssignments(JSON.parse(saved))
+    }
   }, [])
 
   const fetchData = async () => {
     try {
-      const [fixturesRes, teamsRes, playersRes] = await Promise.all([
-        fetch('/api/fixtures'),
-        fetch('/api/teams'),
-        fetch('/api/players')
+      const [fRes, tRes, pRes] = await Promise.all([
+        fetch("/api/fixtures"),
+        fetch("/api/teams"),
+        fetch("/api/players"),
       ])
-      
-      const fixturesData = await fixturesRes.json()
-      const teamsData = await teamsRes.json()
-      const playersData = await playersRes.json()
-      
-      if (fixturesData.success) setFixtures(fixturesData.data || [])
-      if (teamsData.success) setTeams(teamsData.data || [])
-      if (playersData.success) setPlayers(playersData.data || [])
-    } catch (error) {
-      console.error('Error fetching data:', error)
+      const fData = await fRes.json()
+      const tData = await tRes.json()
+      const pData = await pRes.json()
+      if (fData.success) setFixtures(fData.data || [])
+      if (tData.success) setTeams(tData.data || [])
+      if (pData.success) setPlayers(pData.data || [])
+    } catch (err) {
+      console.error("Fetch error:", err)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const loadSavedGroupAssignments = () => {
-    const saved = localStorage.getItem('groupAssignments')
-    if (saved) {
-      setCustomGroupAssignments(JSON.parse(saved))
     }
   }
 
   const handleGroupsAssigned = (assignedGroups) => {
     setCustomGroupAssignments(assignedGroups)
     setShowGroupManager(false)
-    localStorage.setItem('groupAssignments', JSON.stringify(assignedGroups))
+    if (typeof window !== "undefined") {
+      localStorage.setItem("groupAssignments", JSON.stringify(assignedGroups))
+    }
   }
 
-  // Update match score
-  const updateMatchScore = async (matchId, score1, score2, penaltyScore1, penaltyScore2, penaltyShootout, status) => {
+  const updateMatchScore = async (matchId, score1, score2, goalScorers, winner) => {
     try {
-      const match = fixtures.find(f => f._id === matchId)
-      const winner = score1 > score2 ? match.team1 : (score2 > score1 ? match.team2 : null)
-      
-      const response = await fetch('/api/fixtures', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: matchId,
-          score1,
-          score2,
-          penaltyScore1: penaltyShootout ? penaltyScore1 : 0,
-          penaltyScore2: penaltyShootout ? penaltyScore2 : 0,
-          penaltyShootout,
-          status,
-          winner,
-          updatedAt: new Date()
-        })
+      const res = await fetch("/api/fixtures", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          id: matchId, score1, score2, goalScorers, status: "completed", winner, updatedAt: new Date() 
+        }),
       })
-      
-      const data = await response.json()
-      if (data.success) {
-        fetchData()
-        setShowEditModal(false)
+      const data = await res.json()
+      if (data.success) { 
+        fetchData() 
+        setShowEditModal(false) 
         setEditingMatch(null)
-        alert('Match updated successfully!')
-      } else {
-        alert('Failed to update match')
       }
-    } catch (error) {
-      console.error('Error updating match:', error)
-      alert('Error updating match')
+    } catch { 
+      alert("Error updating match") 
     }
   }
 
-  // Delete match
-  const deleteMatch = async (matchId) => {
-    if (!confirm('Are you sure you want to delete this match?')) return
-    
+  const resetResult = async (matchId) => {
     try {
-      const response = await fetch(`/api/fixtures?id=${matchId}`, { method: 'DELETE' })
-      const data = await response.json()
-      if (data.success) {
-        fetchData()
-        alert('Match deleted successfully!')
-      } else {
-        alert('Failed to delete match')
-      }
-    } catch (error) {
-      console.error('Error deleting match:', error)
-      alert('Error deleting match')
-    }
+      const res = await fetch("/api/fixtures", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: matchId, score1: 0, score2: 0, status: "scheduled", winner: null, goalScorers: { home: [], away: [] }, notes: null }),
+      })
+      const data = await res.json()
+      if (data.success) fetchData()
+    } catch { alert("Error resetting") }
   }
 
-  // Get completed matches only
-  const completedMatches = fixtures.filter(f => f.status === 'completed')
-  
-  // Filter by round
-  const filteredMatches = selectedRound === 'all' 
-    ? fixtures 
-    : fixtures.filter(f => f.round === selectedRound)
-
-  // Calculate team standings (overall)
+  // Calculate Overall Standings
   const calculateOverallStandings = () => {
-    const standings = {}
+    const stats = {}
     
     teams.forEach(team => {
-      standings[team.name] = {
+      stats[team.name] = {
         id: team._id,
         name: team.name,
-        shortName: team.shortName,
         logo: team.logo || '⚽',
-        color: team.color,
         played: 0,
         wins: 0,
         draws: 0,
@@ -163,467 +777,332 @@ const ResultsPage = () => {
         points: 0
       }
     })
+
+    const completedMatches = fixtures.filter(f => f.status === "completed")
     
     completedMatches.forEach(match => {
-      if (standings[match.team1]) {
-        standings[match.team1].played++
-        standings[match.team1].goalsFor += match.score1
-        standings[match.team1].goalsAgainst += match.score2
+      const homeTeam = match.homeTeam || match.team1
+      const awayTeam = match.awayTeam || match.team2
+      const homeScore = match.score1 || 0
+      const awayScore = match.score2 || 0
+
+      if (stats[homeTeam]) {
+        stats[homeTeam].played++
+        stats[homeTeam].goalsFor += homeScore
+        stats[homeTeam].goalsAgainst += awayScore
         
-        if (match.score1 > match.score2) {
-          standings[match.team1].wins++
-          standings[match.team1].points += 3
-        } else if (match.score1 === match.score2) {
-          standings[match.team1].draws++
-          standings[match.team1].points += 1
+        if (homeScore > awayScore) {
+          stats[homeTeam].wins++
+          stats[homeTeam].points += 3
+        } else if (homeScore === awayScore) {
+          stats[homeTeam].draws++
+          stats[homeTeam].points += 1
         } else {
-          standings[match.team1].losses++
+          stats[homeTeam].losses++
         }
       }
-      
-      if (standings[match.team2]) {
-        standings[match.team2].played++
-        standings[match.team2].goalsFor += match.score2
-        standings[match.team2].goalsAgainst += match.score1
+
+      if (stats[awayTeam]) {
+        stats[awayTeam].played++
+        stats[awayTeam].goalsFor += awayScore
+        stats[awayTeam].goalsAgainst += homeScore
         
-        if (match.score2 > match.score1) {
-          standings[match.team2].wins++
-          standings[match.team2].points += 3
-        } else if (match.score2 === match.score1) {
-          standings[match.team2].draws++
-          standings[match.team2].points += 1
+        if (awayScore > homeScore) {
+          stats[awayTeam].wins++
+          stats[awayTeam].points += 3
+        } else if (awayScore === homeScore) {
+          stats[awayTeam].draws++
+          stats[awayTeam].points += 1
         } else {
-          standings[match.team2].losses++
+          stats[awayTeam].losses++
         }
       }
     })
-    
-    Object.values(standings).forEach(team => {
+
+    Object.values(stats).forEach(team => {
       team.goalDifference = team.goalsFor - team.goalsAgainst
     })
-    
-    return Object.values(standings).sort((a, b) => {
-      if (a.points !== b.points) return b.points - a.points
-      if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference
-      return b.goalsFor - a.goalsFor
-    })
+
+    return Object.values(stats)
+      .filter(t => t.played > 0)
+      .sort((a, b) => {
+        if (a.points !== b.points) return b.points - a.points
+        if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference
+        return b.goalsFor - a.goalsFor
+      })
   }
 
-  // Calculate standings by group
+  // Calculate Group Standings
   const calculateGroupStandings = () => {
-    const overallStandings = calculateOverallStandings()
+    const overall = calculateOverallStandings()
     
     if (customGroupAssignments) {
       const groups = {}
-      Object.keys(customGroupAssignments).forEach(groupLetter => {
-        const groupTeams = customGroupAssignments[groupLetter]
-        const teamStandings = []
-        
-        groupTeams.forEach(team => {
-          const stats = overallStandings.find(s => s.name === team.name)
-          if (stats) {
-            teamStandings.push(stats)
-          }
-        })
-        
-        teamStandings.sort((a, b) => {
-          if (a.points !== b.points) return b.points - a.points
-          if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference
-          return b.goalsFor - a.goalsFor
-        })
-        
-        groups[groupLetter] = teamStandings
+      Object.keys(customGroupAssignments).forEach(group => {
+        groups[group] = customGroupAssignments[group]
+          .map(team => overall.find(t => t.name === team.name))
+          .filter(Boolean)
+          .sort((a, b) => {
+            if (a.points !== b.points) return b.points - a.points
+            if (a.goalDifference !== b.goalDifference) return b.goalDifference - a.goalDifference
+            return b.goalsFor - a.goalsFor
+          })
       })
       return groups
     }
-    
+
+    // Auto-assign groups
     const groups = {}
+    const groupLetters = ['A', 'B', 'C', 'D']
     for (let i = 0; i < groupConfig.groups; i++) {
-      groups[String.fromCharCode(65 + i)] = []
+      groups[groupLetters[i]] = []
     }
     
-    overallStandings.forEach((team, index) => {
-      const groupIndex = index % groupConfig.groups
-      const groupLetter = String.fromCharCode(65 + groupIndex)
-      groups[groupLetter].push(team)
+    overall.forEach((team, idx) => {
+      const groupIndex = idx % groupConfig.groups
+      groups[groupLetters[groupIndex]].push(team)
     })
     
     return groups
   }
 
-  // Get advancing teams
-  const getAdvancingTeams = () => {
-    const groups = calculateGroupStandings()
-    const advancing = []
+  // Calculate Top Scorers
+  const calculateTopScorers = () => {
+    const goalMap = new Map()
     
-    Object.keys(groups).forEach(group => {
-      const advancingTeams = groups[group].slice(0, groupConfig.teamsAdvancing)
-      advancing.push(...advancingTeams)
+    const completedMatches = fixtures.filter(f => f.status === "completed")
+    
+    completedMatches.forEach(match => {
+      const homeScorers = match.goalScorers?.home || []
+      const awayScorers = match.goalScorers?.away || []
+      
+      homeScorers.forEach(scorer => {
+        if (scorer.playerId && scorer.playerName) {
+          goalMap.set(scorer.playerId, {
+            name: scorer.playerName,
+            goals: (goalMap.get(scorer.playerId)?.goals || 0) + 1,
+            team: match.homeTeam || match.team1
+          })
+        }
+      })
+      
+      awayScorers.forEach(scorer => {
+        if (scorer.playerId && scorer.playerName) {
+          goalMap.set(scorer.playerId, {
+            name: scorer.playerName,
+            goals: (goalMap.get(scorer.playerId)?.goals || 0) + 1,
+            team: match.awayTeam || match.team2
+          })
+        }
+      })
     })
     
-    return advancing
+    // Also check players table for goals
+    players.forEach(player => {
+      if (player.goals && player.goals > 0) {
+        const existing = goalMap.get(player._id)
+        if (existing) {
+          existing.goals += player.goals
+        } else {
+          goalMap.set(player._id, {
+            name: player.name,
+            goals: player.goals,
+            team: player.teamName
+          })
+        }
+      }
+    })
+    
+    return Array.from(goalMap.values())
+      .sort((a, b) => b.goals - a.goals)
+      .slice(0, 10)
   }
 
-  // Get top scorers
-  const getTopScorers = () => {
-    return players.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 10)
-  }
-
-  // Get top assisters
-  const getTopAssisters = () => {
-    return players.filter(p => p.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 10)
-  }
-
-  const getRoundColor = (round) => {
-    switch(round) {
-      case 'group': return C.accent
-      case 'quarter-final': return C.green
-      case 'semi-final': return C.yellow
-      case 'final': return C.red
-      default: return C.muted
-    }
-  }
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ color: C.text }}>Loading...</div>
+    </div>
+  )
 
   const overallStandings = calculateOverallStandings()
   const groupStandings = calculateGroupStandings()
-  const advancingTeams = getAdvancingTeams()
-  const topScorers = getTopScorers()
-  const topAssisters = getTopAssisters()
-  const rounds = ['all', 'group', 'quarter-final', 'semi-final', 'final']
+  const topScorers = calculateTopScorers()
+  const completedMatches = fixtures.filter(f => f.status === "completed")
+  const totalGoals = completedMatches.reduce((sum, f) => sum + (f.score1 || 0) + (f.score2 || 0), 0)
 
-  // Edit Match Modal Component
-  const EditMatchModal = ({ match, onClose, onSave }) => {
-    const [score1, setScore1] = useState(match.score1 || 0)
-    const [score2, setScore2] = useState(match.score2 || 0)
-    const [penaltyShootout, setPenaltyShootout] = useState(match.penaltyShootout || false)
-    const [penaltyScore1, setPenaltyScore1] = useState(match.penaltyScore1 || 0)
-    const [penaltyScore2, setPenaltyScore2] = useState(match.penaltyScore2 || 0)
-    const [status, setStatus] = useState(match.status || 'upcoming')
-
-    return (
-      <div style={{
-        position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-        background: "rgba(0,0,0,0.95)", zIndex: 3000,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px",
-      }}>
-        <div style={{
-          background: C.card, border: `1px solid ${C.border}`,
-          borderRadius: 20, padding: 28, maxWidth: 500, width: "100%",
-        }}>
-          <h2 style={{ color: C.text, marginBottom: 20 }}>Edit Match: {match.team1} vs {match.team2}</h2>
-          
-          <div style={{ marginBottom: 15 }}>
-            <label style={{ color: C.text, display: "block", marginBottom: 5 }}>Match Status</label>
-            <select
-              value={status}
-              onChange={e => setStatus(e.target.value)}
-              style={{ width: "100%", padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text }}
-            >
-              <option value="upcoming">Upcoming</option>
-              <option value="live">Live</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 15, marginBottom: 15 }}>
-            <div>
-              <label style={{ color: C.text }}>{match.team1}</label>
-              <input type="number" value={score1} onChange={e => setScore1(parseInt(e.target.value) || 0)} style={{ width: "100%", padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 24, textAlign: "center" }} />
-            </div>
-            <div style={{ fontSize: 24, alignSelf: "flex-end", color: C.text }}>VS</div>
-            <div>
-              <label style={{ color: C.text }}>{match.team2}</label>
-              <input type="number" value={score2} onChange={e => setScore2(parseInt(e.target.value) || 0)} style={{ width: "100%", padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 24, textAlign: "center" }} />
-            </div>
-          </div>
-
-          {score1 === score2 && score1 > 0 && (
-            <div style={{ marginBottom: 15, padding: 15, background: C.surface, borderRadius: 8 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <input type="checkbox" checked={penaltyShootout} onChange={e => setPenaltyShootout(e.target.checked)} />
-                Penalty Shootout
-              </label>
-              {penaltyShootout && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
-                  <input type="number" placeholder="Penalty 1" value={penaltyScore1} onChange={e => setPenaltyScore1(parseInt(e.target.value) || 0)} style={{ padding: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, textAlign: "center" }} />
-                  <input type="number" placeholder="Penalty 2" value={penaltyScore2} onChange={e => setPenaltyScore2(parseInt(e.target.value) || 0)} style={{ padding: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, textAlign: "center" }} />
-                </div>
-              )}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => onSave(match._id, score1, score2, penaltyScore1, penaltyScore2, penaltyShootout, status)} style={{ flex: 1, padding: 12, background: C.green, border: "none", borderRadius: 8, color: "#000", fontWeight: "bold", cursor: "pointer" }}>Save Changes</button>
-            <button onClick={onClose} style={{ flex: 1, padding: 12, background: C.red, border: "none", borderRadius: 8, color: "#fff", fontWeight: "bold", cursor: "pointer" }}>Cancel</button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: C.text, fontSize: 18 }}>Loading results...</div>
-      </div>
-    )
-  }
+  const tabs = [
+    { id: "add", label: "➕ Add Result" },
+    { id: "matches", label: "📋 Match Results" },
+    { id: "standings", label: "🏆 Overall Standings" },
+    { id: "groups", label: "📊 Group Standings" },
+    { id: "topscorers", label: "⚽ Top Scorers" },
+  ]
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, padding: "32px" }}>
-      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, padding: "16px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         
         {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ color: C.text, fontSize: 28, fontFamily: "'Bebas Neue', sans-serif", marginBottom: 8 }}>
-            📊 Tournament Results
-          </h1>
-          <p style={{ color: C.muted }}>View and edit match results, group standings, and player statistics</p>
+        <div style={{ marginBottom: 20, textAlign: "center" }}>
+          <h1 style={{ color: C.accent, fontSize: 28, fontWeight: 800, marginBottom: 4 }}>Tournament Results</h1>
+          <p style={{ color: C.textMuted, fontSize: 13 }}>Log scores, track standings, view top scorers</p>
         </div>
 
-        {/* Group Configuration */}
-        <div style={{
-          background: `${C.accent}15`, border: `1px solid ${C.accent}`,
-          borderRadius: 12, padding: 16, marginBottom: 24,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexWrap: "wrap", gap: 10
-        }}>
-          <div>
-            <span style={{ color: C.accent, fontWeight: "bold" }}>📋 Tournament Format:</span>
-            <span style={{ color: C.text, marginLeft: 10 }}>
-              {groupConfig.groups} Groups · {groupConfig.teamsPerGroup} Teams per Group · 
-              Top {groupConfig.teamsAdvancing} Advance
-            </span>
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+          <div style={{ background: C.card, borderRadius: 12, padding: "12px", textAlign: "center", border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{fixtures.length}</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>Total Matches</div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <select
-              value={Object.keys(groupPresets).find(key => 
-                groupPresets[key].groups === groupConfig.groups && 
-                groupPresets[key].teamsPerGroup === groupConfig.teamsPerGroup
-              ) || "2x4"}
-              onChange={(e) => setGroupConfig(groupPresets[e.target.value])}
-              style={{ padding: "8px 16px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, cursor: "pointer" }}
-            >
-              {Object.entries(groupPresets).map(([key, config]) => (
-                <option key={key} value={key}>{config.name}</option>
-              ))}
-            </select>
-            <button onClick={() => setShowGroupManager(true)} style={{ padding: "8px 16px", background: C.accent, border: "none", borderRadius: 8, color: "#000", fontWeight: "bold", cursor: "pointer" }}>📋 Manual Group Assignment</button>
+          <div style={{ background: C.card, borderRadius: 12, padding: "12px", textAlign: "center", border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{completedMatches.length}</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>Completed</div>
+          </div>
+          <div style={{ background: C.card, borderRadius: 12, padding: "12px", textAlign: "center", border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.accent }}>{totalGoals}</div>
+            <div style={{ fontSize: 11, color: C.textMuted }}>Total Goals</div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 24, borderBottom: `1px solid ${C.border}`, paddingBottom: 12, flexWrap: "wrap" }}>
-          <button onClick={() => setActiveTab('matches')} style={{ padding: "10px 24px", borderRadius: 8, background: activeTab === 'matches' ? C.accent : 'transparent', color: activeTab === 'matches' ? "#000" : C.text, fontWeight: "bold", cursor: "pointer", border: "none" }}>📅 Match Results</button>
-          <button onClick={() => setActiveTab('standings')} style={{ padding: "10px 24px", borderRadius: 8, background: activeTab === 'standings' ? C.accent : 'transparent', color: activeTab === 'standings' ? "#000" : C.text, fontWeight: "bold", cursor: "pointer", border: "none" }}>🏆 Overall Standings</button>
-          <button onClick={() => setActiveTab('groups')} style={{ padding: "10px 24px", borderRadius: 8, background: activeTab === 'groups' ? C.accent : 'transparent', color: activeTab === 'groups' ? "#000" : C.text, fontWeight: "bold", cursor: "pointer", border: "none" }}>📋 Group Standings</button>
-          <button onClick={() => setActiveTab('knockout')} style={{ padding: "10px 24px", borderRadius: 8, background: activeTab === 'knockout' ? C.accent : 'transparent', color: activeTab === 'knockout' ? "#000" : C.text, fontWeight: "bold", cursor: "pointer", border: "none" }}>🏆 Knockout Stage</button>
-          <button onClick={() => setActiveTab('stats')} style={{ padding: "10px 24px", borderRadius: 8, background: activeTab === 'stats' ? C.accent : 'transparent', color: activeTab === 'stats' ? "#000" : C.text, fontWeight: "bold", cursor: "pointer", border: "none" }}>⚽ Player Stats</button>
-        </div>
-
-        {/* Match Results Tab with Edit Buttons */}
-        {activeTab === 'matches' && (
-          <div>
-            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-              {rounds.map(round => (
-                <button key={round} onClick={() => setSelectedRound(round)} style={{ padding: "6px 16px", borderRadius: 20, background: selectedRound === round ? getRoundColor(round) : C.surface, color: selectedRound === round ? "#000" : C.text, border: `1px solid ${selectedRound === round ? 'transparent' : C.border}`, cursor: "pointer", fontSize: 12 }}>
-                  {round === 'all' ? 'All Matches' : round.toUpperCase()}
-                </button>
-              ))}
+        {/* Group Format */}
+        {(activeTab === "groups" || activeTab === "standings") && (
+          <div style={{ background: C.surface, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, border: `1px solid ${C.border}` }}>
+            <span style={{ color: C.accent, fontWeight: 600, fontSize: 13 }}>📋 {groupConfig.groups} Groups · Top {groupConfig.teamsAdvancing} Advance</span>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <select 
+                value={Object.keys(groupPresets).find(k => groupPresets[k].groups === groupConfig.groups && groupPresets[k].teamsPerGroup === groupConfig.teamsPerGroup) || "2x4"} 
+                onChange={e => setGroupConfig(groupPresets[e.target.value])} 
+                style={{ ...IS, width: "auto", cursor: "pointer", fontSize: 12, padding: "6px 12px" }}
+              >
+                {Object.entries(groupPresets).map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+              </select>
+              <button onClick={() => setShowGroupManager(true)} style={{ ...buttonStyle, background: C.accent, color: "#000", padding: "6px 14px", fontSize: 12 }}>Manual Groups</button>
             </div>
-
-            {filteredMatches.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 60, color: C.muted }}>No matches found.</div>
-            ) : (
-              <div style={{ display: "grid", gap: 16 }}>
-                {filteredMatches.map((match) => (
-                  <div key={match._id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
-                      <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, background: `${getRoundColor(match.round)}22`, color: getRoundColor(match.round) }}>{match.round?.toUpperCase()}</span>
-                      <span style={{ color: C.muted, fontSize: 12 }}>📅 {match.date} | ⏰ {match.time} | 📍 {match.venue}</span>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={() => { setEditingMatch(match); setShowEditModal(true); }} style={{ padding: "4px 12px", background: C.accent, border: "none", borderRadius: 6, color: "#000", cursor: "pointer", fontSize: 12 }}>✏️ Edit</button>
-                        <button onClick={() => deleteMatch(match._id)} style={{ padding: "4px 12px", background: C.red, border: "none", borderRadius: 6, color: "#fff", cursor: "pointer", fontSize: 12 }}>🗑️ Delete</button>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-                      <div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 8 }}>⚽</div><div style={{ color: C.text, fontWeight: "bold", fontSize: 16 }}>{match.team1}</div></div>
-                      <div style={{ textAlign: "center", minWidth: 100 }}>
-                        <div style={{ fontSize: 36, fontWeight: "bold", color: match.score1 > match.score2 ? C.green : (match.score1 === match.score2 ? C.yellow : C.red) }}>{match.score1} - {match.score2}</div>
-                        {match.penaltyShootout && <div style={{ fontSize: 12, color: C.yellow, marginTop: 5 }}>Penalty: {match.penaltyScore1} - {match.penaltyScore2}</div>}
-                        {match.winner && <div style={{ fontSize: 12, color: C.green, marginTop: 5 }}>Winner: {match.winner}</div>}
-                      </div>
-                      <div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 48, marginBottom: 8 }}>⚽</div><div style={{ color: C.text, fontWeight: "bold", fontSize: 16 }}>{match.team2}</div></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
-        {/* Overall Standings Tab - Add Edit Points Option */}
-        {activeTab === 'standings' && (
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, overflow: "auto" }}>
-            <div style={{ padding: 20, borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-              <h3 style={{ color: C.accent, fontSize: 18 }}>🏆 Overall Tournament Standings</h3>
-              <p style={{ color: C.muted, fontSize: 12, marginTop: 5 }}>All teams combined ranking (auto-calculated from match results)</p>
-            </div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-                  <th style={{ padding: 16, textAlign: "center", color: C.muted, width: 50 }}>#</th>
-                  <th style={{ padding: 16, textAlign: "left", color: C.muted }}>Team</th>
-                  <th style={{ padding: 16, textAlign: "center", color: C.muted }}>P</th><th style={{ padding: 16, textAlign: "center", color: C.muted }}>W</th>
-                  <th style={{ padding: 16, textAlign: "center", color: C.muted }}>D</th><th style={{ padding: 16, textAlign: "center", color: C.muted }}>L</th>
-                  <th style={{ padding: 16, textAlign: "center", color: C.muted }}>GF</th><th style={{ padding: 16, textAlign: "center", color: C.muted }}>GA</th>
-                  <th style={{ padding: 16, textAlign: "center", color: C.muted }}>GD</th><th style={{ padding: 16, textAlign: "center", color: C.muted }}>Pts</th>
-                 </tr>
-              </thead>
-              <tbody>
-                {overallStandings.map((team, index) => (
-                  <tr key={team.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: 16, textAlign: "center", fontWeight: "bold", color: C.text }}>{index + 1}</td>
-                    <td style={{ padding: 16 }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 24 }}>{team.logo}</span><span style={{ color: C.text, fontWeight: "bold" }}>{team.name}</span></div></td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.text }}>{team.played}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.green }}>{team.wins}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.yellow }}>{team.draws}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.red }}>{team.losses}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.green }}>{team.goalsFor}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.red }}>{team.goalsAgainst}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.accent }}>{team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}</td>
-                    <td style={{ padding: 16, textAlign: "center", color: C.yellow, fontWeight: "bold", fontSize: 18 }}>{team.points}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ padding: 16, textAlign: "center", borderTop: `1px solid ${C.border}`, color: C.muted, fontSize: 12 }}>
-              💡 Standings are automatically calculated from match results. Edit matches to update standings.
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: `2px solid ${C.border}`, paddingBottom: 10, flexWrap: "wrap" }}>
+          {tabs.map(t => (
+            <button 
+              key={t.id} 
+              onClick={() => setActiveTab(t.id)} 
+              style={{
+                padding: "8px 20px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13,
+                background: activeTab === t.id ? C.accent : "transparent",
+                color: activeTab === t.id ? "#000" : C.textMuted,
+                transition: "all 0.2s"
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Add Result Tab */}
+        {activeTab === "add" && (
+          <div>
+            <AddResult fixtures={fixtures} players={players} onResultAdded={fetchData} />
+            <div style={{ marginTop: 20 }}>
+              <ResultsList 
+                fixtures={fixtures} 
+                players={players} 
+                onDelete={resetResult} 
+                onEdit={(match) => { setEditingMatch(match); setShowEditModal(true) }} 
+              />
             </div>
           </div>
+        )}
+
+        {/* Match Results Tab */}
+        {activeTab === "matches" && (
+          <ResultsList 
+            fixtures={fixtures} 
+            players={players} 
+            onDelete={resetResult} 
+            onEdit={(match) => { setEditingMatch(match); setShowEditModal(true) }} 
+          />
+        )}
+
+        {/* Overall Standings Tab */}
+        {activeTab === "standings" && (
+          <StandingsTable standings={overallStandings} title="🏆 Overall Tournament Standings" accentColor={C.accent} />
         )}
 
         {/* Group Standings Tab */}
-        {activeTab === 'groups' && (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(groupConfig.groups, 2)}, 1fr)`, gap: 24 }}>
-            {Object.entries(groupStandings).map(([groupName, teams]) => (
-              <div key={groupName} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, overflow: "auto" }}>
-                <div style={{ padding: 20, borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-                  <h3 style={{ color: getRoundColor('group'), fontSize: 20 }}>Group {groupName}</h3>
-                  <p style={{ color: C.muted, fontSize: 12 }}>Top {groupConfig.teamsAdvancing} advance to knockout</p>
-                </div>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <th style={{ padding: 12, textAlign: "left", color: C.muted }}>Team</th>
-                    <th style={{ padding: 12, textAlign: "center", color: C.muted }}>P</th><th style={{ padding: 12, textAlign: "center", color: C.muted }}>W</th>
-                    <th style={{ padding: 12, textAlign: "center", color: C.muted }}>D</th><th style={{ padding: 12, textAlign: "center", color: C.muted }}>L</th>
-                    <th style={{ padding: 12, textAlign: "center", color: C.muted }}>GD</th><th style={{ padding: 12, textAlign: "center", color: C.muted }}>Pts</th>
-                  </tr></thead>
-                  <tbody>
-                    {teams.map((team, idx) => (
-                      <tr key={team.id} style={{ borderBottom: `1px solid ${C.border}`, background: idx < groupConfig.teamsAdvancing ? `${C.green}10` : 'transparent' }}>
-                        <td style={{ padding: 12 }}><span>{team.logo}</span> <span style={{ color: C.text }}>{team.name}</span> {idx < groupConfig.teamsAdvancing && <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 10, background: C.green, color: "#000", marginLeft: 8 }}>Qualified</span>}</td>
-                        <td style={{ padding: 12, textAlign: "center", color: C.text }}>{team.played}</td>
-                        <td style={{ padding: 12, textAlign: "center", color: C.green }}>{team.wins}</td>
-                        <td style={{ padding: 12, textAlign: "center", color: C.yellow }}>{team.draws}</td>
-                        <td style={{ padding: 12, textAlign: "center", color: C.red }}>{team.losses}</td>
-                        <td style={{ padding: 12, textAlign: "center", color: C.accent }}>{team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}</td>
-                        <td style={{ padding: 12, textAlign: "center", color: C.yellow, fontWeight: "bold" }}>{team.points}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {activeTab === "groups" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {Object.entries(groupStandings).map(([groupName, groupTeams]) => (
+              <StandingsTable 
+                key={groupName} 
+                standings={groupTeams} 
+                title={`📊 Group ${groupName} Standings`} 
+                accentColor={C.green}
+              />
             ))}
           </div>
         )}
 
-        {/* Knockout Stage Tab */}
-        {activeTab === 'knockout' && (
-          <div>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 24, marginBottom: 24 }}>
-              <h3 style={{ color: C.accent, fontSize: 18, marginBottom: 16 }}>🏆 Teams Qualified for Knockout Stage</h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {advancingTeams.map((team, idx) => (
-                  <span key={idx} style={{ padding: "8px 16px", background: C.surface, border: `1px solid ${team.color}`, borderRadius: 20, color: team.color, display: "flex", alignItems: "center", gap: 8 }}>{team.logo} {team.name}</span>
-                ))}
-              </div>
+        {/* Top Scorers Tab */}
+        {activeTab === "topscorers" && (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "auto" }}>
+            <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+              <h3 style={{ color: C.accent, fontSize: 16, fontWeight: 700, margin: 0 }}>⚽ Top Goal Scorers</h3>
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 300 }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+                    <th style={{ padding: "12px 12px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>#</th>
+                    <th style={{ padding: "12px 12px", textAlign: "left", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Player</th>
+                    <th style={{ padding: "12px 12px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Team</th>
+                    <th style={{ padding: "12px 12px", textAlign: "center", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Goals</th>
+                   </tr>
+                </thead>
+                <tbody>
+                  {topScorers.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" style={{ padding: 60, textAlign: "center", color: C.textMuted }}>No goals scored yet</td>
+                    </tr>
+                  ) : (
+                    topScorers.map((scorer, idx) => (
+                      <tr key={idx} style={{ borderBottom: `1px solid ${C.border}` }}>
+                        <td style={{ padding: "12px 12px", textAlign: "center", fontWeight: 700, color: idx < 3 ? C.accent : C.text, fontSize: 14 }}>{idx + 1}</td>
+                        <td style={{ padding: "12px 12px", textAlign: "left", color: C.text, fontWeight: 600, fontSize: 13 }}>{scorer.name}</td>
+                        <td style={{ padding: "12px 12px", textAlign: "center", color: C.textMuted, fontSize: 12 }}>{scorer.team || '—'}</td>
+                        <td style={{ padding: "12px 12px", textAlign: "center", color: C.accent, fontWeight: 700, fontSize: 18 }}>{scorer.goals}</td>
+                       </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* Player Stats Tab */}
-        {activeTab === 'stats' && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, overflow: "auto" }}>
-              <div style={{ padding: 20, borderBottom: `1px solid ${C.border}`, background: C.surface }}><h3 style={{ color: C.green, fontSize: 20 }}>⚡ Top Scorers</h3></div>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <th style={{ padding: 12, textAlign: "center", color: C.muted, width: 50 }}>#</th>
-                  <th style={{ padding: 12, textAlign: "left", color: C.muted }}>Player</th>
-                  <th style={{ padding: 12, textAlign: "center", color: C.muted }}>Team</th>
-                  <th style={{ padding: 12, textAlign: "center", color: C.muted }}>Goals</th>
-                </tr></thead>
-                <tbody>
-                  {topScorers.map((player, index) => (
-                    <tr key={player._id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: 12, textAlign: "center", fontWeight: "bold", color: C.text }}>{index + 1}</td>
-                      <td style={{ padding: 12, color: C.text }}>{player.name} {player.isCaptain && '👑'}</td>
-                      <td style={{ padding: 12, textAlign: "center", color: C.text }}>{player.teamName || 'Unassigned'}</td>
-                      <td style={{ padding: 12, textAlign: "center", color: C.green, fontWeight: "bold", fontSize: 18 }}>{player.goals}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, overflow: "auto" }}>
-              <div style={{ padding: 20, borderBottom: `1px solid ${C.border}`, background: C.surface }}><h3 style={{ color: C.accent, fontSize: 20 }}>🎯 Top Assisters</h3></div>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <th style={{ padding: 12, textAlign: "center", color: C.muted, width: 50 }}>#</th>
-                  <th style={{ padding: 12, textAlign: "left", color: C.muted }}>Player</th>
-                  <th style={{ padding: 12, textAlign: "center", color: C.muted }}>Team</th>
-                  <th style={{ padding: 12, textAlign: "center", color: C.muted }}>Assists</th>
-                </tr></thead>
-                <tbody>
-                  {topAssisters.map((player, index) => (
-                    <tr key={player._id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: 12, textAlign: "center", fontWeight: "bold", color: C.text }}>{index + 1}</td>
-                      <td style={{ padding: 12, color: C.text }}>{player.name} {player.isCaptain && '👑'}</td>
-                      <td style={{ padding: 12, textAlign: "center", color: C.text }}>{player.teamName || 'Unassigned'}</td>
-                      <td style={{ padding: 12, textAlign: "center", color: C.accent, fontWeight: "bold", fontSize: 18 }}>{player.assists}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Edit Match Modal */}
+      {/* Edit Modal */}
       {showEditModal && editingMatch && (
-        <EditMatchModal
-          match={editingMatch}
-          onClose={() => { setShowEditModal(false); setEditingMatch(null); }}
+        <EditMatchModal 
+          match={editingMatch} 
+          players={players} 
+          onClose={() => { setShowEditModal(false); setEditingMatch(null) }} 
           onSave={updateMatchScore}
+          onReset={resetResult}
         />
       )}
 
       {/* Group Manager Modal */}
       {showGroupManager && teams.length > 0 && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.95)", zIndex: 2000,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "20px", overflow: "auto",
-        }}>
-          <div style={{ maxWidth: 900, width: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-              <button onClick={() => setShowGroupManager(false)} style={{ padding: "8px 16px", background: C.red, border: "none", borderRadius: 8, color: "#fff", cursor: "pointer" }}>Close</button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.95)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ maxWidth: 500, width: "100%", background: C.card, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: 12, borderBottom: `1px solid ${C.border}` }}>
+              <button onClick={() => setShowGroupManager(false)} style={{ ...buttonStyle, background: C.red, color: "#fff", padding: "4px 16px", fontSize: 12 }}>Close</button>
             </div>
-            <GroupManager teams={teams} groupConfig={groupConfig} onGroupsAssigned={handleGroupsAssigned} />
+            <div style={{ padding: 16 }}>
+              <GroupManager teams={teams} groupConfig={groupConfig} onGroupsAssigned={handleGroupsAssigned} />
+            </div>
           </div>
         </div>
       )}
